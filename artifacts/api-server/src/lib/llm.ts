@@ -1,10 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
-import OpenAI from "openai";
 import { db, aiActivityTable, replyCategoryValues, type ReplyCategory } from "@workspace/db";
 import { logger } from "./logger";
 import { getCredentialValue } from "./credentials";
 
-type LlmProvider = "gemini" | "openai";
+type LlmProvider = "gemini";
 type AiActivityKind =
   | "language_detection"
   | "email_generation"
@@ -15,8 +14,6 @@ type AiActivityKind =
 async function resolveProvider(): Promise<{ provider: LlmProvider; apiKey: string } | null> {
   const gemini = await getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY");
   if (gemini) return { provider: "gemini", apiKey: gemini };
-  const openai = await getCredentialValue("openai", "apiKey", "OPENAI_API_KEY");
-  if (openai) return { provider: "openai", apiKey: openai };
   return null;
 }
 
@@ -26,10 +23,6 @@ export async function isLlmConfigured(): Promise<boolean> {
 
 function getGeminiClient(apiKey: string): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
-}
-
-function getOpenAiClient(apiKey: string): OpenAI {
-  return new OpenAI({ apiKey });
 }
 
 interface CallLlmOptions {
@@ -51,58 +44,33 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
       kind: opts.kind,
       prompt: fullPrompt,
       status: "error",
-      errorMessage:
-        "No LLM provider configured. Add GEMINI_API_KEY or OPENAI_API_KEY.",
+      errorMessage: "No LLM provider configured. Add GEMINI_API_KEY.",
       relatedProspectId: opts.relatedProspectId ?? null,
       relatedCampaignId: opts.relatedCampaignId ?? null,
     });
     throw new Error(
-      "No LLM provider configured. Add GEMINI_API_KEY or OPENAI_API_KEY in Settings > Integrations.",
+      "No LLM provider configured. Add GEMINI_API_KEY in Settings > Integrations.",
     );
   }
 
   try {
-    if (provider === "gemini") {
-      const ai = getGeminiClient(resolved.apiKey);
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
-        config: {
-          systemInstruction: opts.systemPrompt,
-          maxOutputTokens: 8192,
-          ...(opts.json ? { responseMimeType: "application/json" } : {}),
-        },
-      });
-      const text = response.text ?? "";
-      await db.insert(aiActivityTable).values({
-        kind: opts.kind,
-        prompt: fullPrompt,
-        response: text,
-        promptTokens: response.usageMetadata?.promptTokenCount ?? null,
-        completionTokens: response.usageMetadata?.candidatesTokenCount ?? null,
-        status: "success",
-        relatedProspectId: opts.relatedProspectId ?? null,
-        relatedCampaignId: opts.relatedCampaignId ?? null,
-      });
-      return text;
-    }
-
-    const openai = getOpenAiClient(resolved.apiKey);
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: opts.systemPrompt },
-        { role: "user", content: opts.userPrompt },
-      ],
-      ...(opts.json ? { response_format: { type: "json_object" as const } } : {}),
+    const ai = getGeminiClient(resolved.apiKey);
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
+      config: {
+        systemInstruction: opts.systemPrompt,
+        maxOutputTokens: 8192,
+        ...(opts.json ? { responseMimeType: "application/json" } : {}),
+      },
     });
-    const text = response.choices[0]?.message?.content ?? "";
+    const text = response.text ?? "";
     await db.insert(aiActivityTable).values({
       kind: opts.kind,
       prompt: fullPrompt,
       response: text,
-      promptTokens: response.usage?.prompt_tokens ?? null,
-      completionTokens: response.usage?.completion_tokens ?? null,
+      promptTokens: response.usageMetadata?.promptTokenCount ?? null,
+      completionTokens: response.usageMetadata?.candidatesTokenCount ?? null,
       status: "success",
       relatedProspectId: opts.relatedProspectId ?? null,
       relatedCampaignId: opts.relatedCampaignId ?? null,

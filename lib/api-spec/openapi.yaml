@@ -716,7 +716,7 @@ components:
     ProspectSource:
       type: string
       enum:
-        [manual, apollo, hunter, snov, clearbit, crunchbase, opencorporates, website]
+        [manual, apollo, hunter, website]
 
     Prospect:
       type: object

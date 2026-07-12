@@ -19,22 +19,8 @@ export interface CredentialField {
 // separately (connector-based) and is not part of this map.
 export const PROVIDER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
   gemini: [{ name: "apiKey", label: "API key", envVar: "GEMINI_API_KEY", secret: true }],
-  openai: [{ name: "apiKey", label: "API key", envVar: "OPENAI_API_KEY", secret: true }],
   apollo: [{ name: "apiKey", label: "API key", envVar: "APOLLO_API_KEY", secret: true }],
-  crunchbase: [
-    { name: "apiKey", label: "API key", envVar: "CRUNCHBASE_API_KEY", secret: true },
-  ],
-  opencorporates: [
-    { name: "apiKey", label: "API key", envVar: "OPENCORPORATES_API_KEY", secret: true },
-  ],
   hunter: [{ name: "apiKey", label: "API key", envVar: "HUNTER_API_KEY", secret: true }],
-  snov: [
-    { name: "clientId", label: "Client ID", envVar: "SNOV_CLIENT_ID", secret: false },
-    { name: "clientSecret", label: "Client secret", envVar: "SNOV_CLIENT_SECRET", secret: true },
-  ],
-  clearbit: [
-    { name: "apiKey", label: "API key", envVar: "CLEARBIT_API_KEY", secret: true },
-  ],
 };
 
 let cache: Record<string, Record<string, string>> | null = null;
