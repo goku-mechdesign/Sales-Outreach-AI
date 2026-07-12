@@ -4,6 +4,7 @@ import {
   useSetIntegrationCredential,
   useClearIntegrationCredential,
   useSetGmailDisabled,
+  useTestIntegration,
   getListIntegrationsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,9 +22,52 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CheckCircle2, CircleDashed, Pencil, X } from "lucide-react";
+import { CheckCircle2, CircleDashed, FlaskConical, Pencil, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { IntegrationCategory, IntegrationStatus } from "@workspace/api-client-react";
+
+const TESTABLE_KEYS = new Set(["gemini", "nvidia", "apollo", "hunter", "gmail"]);
+
+function TestIntegrationButton({ integration }: { integration: IntegrationStatus }) {
+  const { toast } = useToast();
+  const testIntegration = useTestIntegration();
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1 text-muted-foreground"
+      disabled={testIntegration.isPending}
+      onClick={() =>
+        testIntegration.mutate(
+          { key: integration.key },
+          {
+            onSuccess: (result) => {
+              toast({
+                title: result.success
+                  ? `${integration.displayName} test passed`
+                  : `${integration.displayName} test failed`,
+                description: result.message,
+                variant: result.success ? "default" : "destructive",
+              });
+            },
+            onError: (err) => {
+              toast({
+                title: `${integration.displayName} test failed`,
+                description: err instanceof Error ? err.message : "Unknown error",
+                variant: "destructive",
+              });
+            },
+          },
+        )
+      }
+      data-testid={`button-test-${integration.key}`}
+    >
+      <FlaskConical className="h-3.5 w-3.5" />
+      {testIntegration.isPending ? "Testing..." : "Test"}
+    </Button>
+  );
+}
 
 const categoryLabel: Record<IntegrationCategory, string> = {
   prospect_discovery: "Prospect discovery & enrichment",
@@ -174,8 +218,19 @@ function IntegrationCard({ integration }: { integration: IntegrationStatus }) {
                 Clear
               </Button>
             )}
+            {TESTABLE_KEYS.has(integration.key) &&
+              integration.configured &&
+              !integration.disabled && <TestIntegrationButton integration={integration} />}
           </div>
         )}
+        {!integration.editable &&
+          TESTABLE_KEYS.has(integration.key) &&
+          integration.configured &&
+          !integration.disabled && (
+            <div className="flex items-center gap-2">
+              <TestIntegrationButton integration={integration} />
+            </div>
+          )}
         {integration.configuredVia === "environment" && (
           <p className="text-xs text-muted-foreground">Configured via environment secret.</p>
         )}

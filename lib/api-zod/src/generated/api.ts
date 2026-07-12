@@ -926,6 +926,19 @@ export const ClearIntegrationCredentialResponse = zod.object({
 
 
 /**
+ * @summary Make a live, low-cost call to the provider to verify the configured credentials work
+ */
+export const TestIntegrationParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const TestIntegrationResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Toggle whether the app should use the connected Gmail account
  */
 export const SetGmailDisabledBody = zod.object({

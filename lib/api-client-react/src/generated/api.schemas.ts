@@ -474,6 +474,11 @@ export interface IntegrationCredentialInput {
   values: IntegrationCredentialInputValues;
 }
 
+export interface IntegrationTestResult {
+  success: boolean;
+  message: string;
+}
+
 export interface GmailDisabledInput {
   disabled: boolean;
 }

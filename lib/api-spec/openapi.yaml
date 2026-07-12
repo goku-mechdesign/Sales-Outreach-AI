@@ -567,6 +567,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /integrations/{key}/test:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: testIntegration
+      tags: [integrations]
+      summary: Make a live, low-cost call to the provider to verify the configured credentials work
+      responses:
+        "200":
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationTestResult"
+        "400":
+          description: Invalid key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /integrations/gmail/disabled:
     put:
       operationId: setGmailDisabled
@@ -1183,6 +1207,13 @@ components:
           type: object
           additionalProperties: { type: string }
           description: Field name -> value map, matching the integration's `fields`.
+
+    IntegrationTestResult:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
 
     GmailDisabledInput:
       type: object

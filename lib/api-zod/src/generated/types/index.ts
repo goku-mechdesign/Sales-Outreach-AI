@@ -36,6 +36,7 @@ export * from './integrationCredentialInputValues';
 export * from './integrationField';
 export * from './integrationStatus';
 export * from './integrationStatusConfiguredVia';
+export * from './integrationTestResult';
 export * from './listAiActivityParams';
 export * from './listNotificationsParams';
 export * from './listProspectsParams';

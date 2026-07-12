@@ -6,13 +6,17 @@ import {
   ClearIntegrationCredentialResponse,
   SetGmailDisabledBody,
   SetGmailDisabledResponse,
+  TestIntegrationResponse,
 } from "@workspace/api-zod";
 import { getIntegrationStatuses } from "../lib/integrationsStatus";
+import { testIntegration } from "../lib/integrationsTest";
 import {
   PROVIDER_CREDENTIAL_FIELDS,
   setCredentialValues,
   clearCredential,
 } from "../lib/credentials";
+
+const TESTABLE_KEYS = new Set(["gemini", "nvidia", "apollo", "hunter", "gmail"]);
 
 const router: IRouter = Router();
 
@@ -59,6 +63,16 @@ router.delete("/integrations/:key", async (req, res): Promise<void> => {
   const statuses = await getIntegrationStatuses();
   const updated = statuses.find((s) => s.key === key);
   res.json(ClearIntegrationCredentialResponse.parse(updated));
+});
+
+router.post("/integrations/:key/test", async (req, res): Promise<void> => {
+  const key = req.params.key;
+  if (!TESTABLE_KEYS.has(key)) {
+    res.status(400).json({ error: `Unknown or non-testable integration key: ${key}` });
+    return;
+  }
+  const result = await testIntegration(key);
+  res.json(TestIntegrationResponse.parse(result));
 });
 
 router.put("/integrations/gmail/disabled", async (req, res): Promise<void> => {
