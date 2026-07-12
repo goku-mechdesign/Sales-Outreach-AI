@@ -67,6 +67,7 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
         previousSubject: campaign.subject ?? campaign.name,
         previousBody: campaign.body ?? "",
         followupStage: nextStage,
+        language: prospect.detectedLanguage,
         companyContext: settings,
         campaignId: campaign.id,
         prospectId: prospect.id,
