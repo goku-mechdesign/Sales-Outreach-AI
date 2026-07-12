@@ -5,9 +5,11 @@ import {
   emailMessagesTable,
   campaignProspectsTable,
   notificationsTable,
+  prospectsTable,
 } from "@workspace/db";
 import { fetchNewGmailReplies, isGmailConfigured } from "./gmail";
-import { classifyReply } from "./llm";
+import { classifyReply, generateReplyDraft } from "./llm";
+import { getOrCreateSettings } from "./settings";
 import { logger } from "./logger";
 
 export interface PollResult {
@@ -92,6 +94,38 @@ export async function pollInboxAndProcess(): Promise<PollResult> {
           title: "🔥 Hot lead reply",
           body: `${reply.fromAddress} replied: ${classification.summary}`,
         });
+
+        // Auto-draft a reply in the prospect's language so it's ready to
+        // review/send the moment the user opens the hot lead.
+        try {
+          const prospect = existingThread?.prospectId
+            ? (
+                await db
+                  .select()
+                  .from(prospectsTable)
+                  .where(eq(prospectsTable.id, existingThread.prospectId))
+              )[0]
+            : undefined;
+          const messages = await db
+            .select()
+            .from(emailMessagesTable)
+            .where(eq(emailMessagesTable.threadId, threadId))
+            .orderBy(emailMessagesTable.createdAt);
+          const settings = await getOrCreateSettings();
+          const draft = await generateReplyDraft({
+            threadSubject: reply.subject,
+            messages,
+            companyContext: settings,
+            language: prospect?.detectedLanguage,
+            threadId,
+          });
+          await db
+            .update(emailThreadsTable)
+            .set({ draftReply: draft })
+            .where(eq(emailThreadsTable.id, threadId));
+        } catch (err) {
+          logger.error({ err, threadId }, "Failed to auto-draft hot lead reply");
+        }
       }
 
       // Stop follow-ups for the related campaign prospect once they reply.

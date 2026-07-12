@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ilike, count } from "drizzle-orm";
-import { db, emailThreadsTable, emailMessagesTable } from "@workspace/db";
+import { db, emailThreadsTable, emailMessagesTable, prospectsTable } from "@workspace/db";
 import {
   ListThreadsQueryParams,
   ListThreadsResponse,
@@ -168,11 +168,20 @@ router.post("/threads/:id/generate-draft", async (req, res): Promise<void> => {
     .where(eq(emailMessagesTable.threadId, thread.id))
     .orderBy(emailMessagesTable.createdAt);
   const settings = await getOrCreateSettings();
+  const prospect = thread.prospectId
+    ? (
+        await db
+          .select()
+          .from(prospectsTable)
+          .where(eq(prospectsTable.id, thread.prospectId))
+      )[0]
+    : undefined;
 
   const draft = await generateReplyDraft({
     threadSubject: thread.subject,
     messages,
     companyContext: settings,
+    language: prospect?.detectedLanguage,
     threadId: thread.id,
   });
 

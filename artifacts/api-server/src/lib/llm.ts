@@ -591,6 +591,7 @@ export async function generateReplyDraft(params: {
   threadSubject: string;
   messages: { direction: string; body: string }[];
   companyContext: CompanyContext;
+  language?: string | null;
   threadId?: number;
 }): Promise<string> {
   const systemPrompt =
@@ -609,6 +610,7 @@ ${conversation}
 Draft the next reply from us.
 Sender company: ${params.companyContext.companyName}
 Signature: ${params.companyContext.emailSignature ?? params.companyContext.companyName}
+${params.language && params.language !== "en" ? `Write the reply in language code "${params.language}" (the same language the prospect is writing in).` : "Write the reply in English."}
 `.trim();
 
   const text = await callLlm({
