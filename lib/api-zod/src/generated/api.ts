@@ -860,9 +860,93 @@ export const ListIntegrationsResponseItem = zod.object({
   "displayName": zod.string(),
   "category": zod.enum(['prospect_discovery', 'ai', 'email']),
   "configured": zod.boolean(),
-  "description": zod.string().nullish()
+  "description": zod.string().nullish(),
+  "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
+  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "secret": zod.boolean()
+})),
+  "disabled": zod.boolean().describe('For Gmail, whether the user has soft-disabled sending\/polling.')
 })
 export const ListIntegrationsResponse = zod.array(ListIntegrationsResponseItem)
+
+
+/**
+ * @summary Set or update stored credentials for an integration
+ */
+export const SetIntegrationCredentialParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const SetIntegrationCredentialBody = zod.object({
+  "values": zod.record(zod.string(), zod.string()).describe('Field name -> value map, matching the integration\'s `fields`.')
+})
+
+export const SetIntegrationCredentialResponse = zod.object({
+  "key": zod.string(),
+  "displayName": zod.string(),
+  "category": zod.enum(['prospect_discovery', 'ai', 'email']),
+  "configured": zod.boolean(),
+  "description": zod.string().nullish(),
+  "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
+  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "secret": zod.boolean()
+})),
+  "disabled": zod.boolean().describe('For Gmail, whether the user has soft-disabled sending\/polling.')
+})
+
+
+/**
+ * @summary Clear stored UI credentials for an integration, reverting to environment defaults
+ */
+export const ClearIntegrationCredentialParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const ClearIntegrationCredentialResponse = zod.object({
+  "key": zod.string(),
+  "displayName": zod.string(),
+  "category": zod.enum(['prospect_discovery', 'ai', 'email']),
+  "configured": zod.boolean(),
+  "description": zod.string().nullish(),
+  "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
+  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "secret": zod.boolean()
+})),
+  "disabled": zod.boolean().describe('For Gmail, whether the user has soft-disabled sending\/polling.')
+})
+
+
+/**
+ * @summary Toggle whether the app should use the connected Gmail account
+ */
+export const SetGmailDisabledBody = zod.object({
+  "disabled": zod.boolean()
+})
+
+export const SetGmailDisabledResponse = zod.object({
+  "key": zod.string(),
+  "displayName": zod.string(),
+  "category": zod.enum(['prospect_discovery', 'ai', 'email']),
+  "configured": zod.boolean(),
+  "description": zod.string().nullish(),
+  "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
+  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "secret": zod.boolean()
+})),
+  "disabled": zod.boolean().describe('For Gmail, whether the user has soft-disabled sending\/polling.')
+})
 
 
 /**

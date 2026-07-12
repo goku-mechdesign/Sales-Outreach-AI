@@ -242,11 +242,12 @@ router.post("/campaigns/:id/send-test", async (req, res): Promise<void> => {
   }
 
   const settings = await getOrCreateSettings();
-  if (!isGmailConfigured() || !settings.notificationEmail) {
+  const gmailConfigured = await isGmailConfigured();
+  if (!gmailConfigured || !settings.notificationEmail) {
     res.json(
       SendTestEmailResponse.parse({
         success: false,
-        message: !isGmailConfigured()
+        message: !gmailConfigured
           ? "Gmail is not connected. Connect it in Settings > Integrations."
           : "Add a notification email in Settings to receive test sends.",
       }),
@@ -324,7 +325,7 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
       continue;
     }
 
-    if (!isGmailConfigured()) {
+    if (!(await isGmailConfigured())) {
       await db
         .update(campaignProspectsTable)
         .set({ stoppedReason: "Gmail is not connected" })

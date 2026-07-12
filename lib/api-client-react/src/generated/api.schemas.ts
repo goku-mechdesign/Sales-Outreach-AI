@@ -437,6 +437,21 @@ export const IntegrationCategory = {
   email: 'email',
 } as const;
 
+export interface IntegrationField {
+  name: string;
+  label: string;
+  secret: boolean;
+}
+
+export type IntegrationStatusConfiguredVia = typeof IntegrationStatusConfiguredVia[keyof typeof IntegrationStatusConfiguredVia];
+
+
+export const IntegrationStatusConfiguredVia = {
+  ui: 'ui',
+  environment: 'environment',
+  none: 'none',
+} as const;
+
 export interface IntegrationStatus {
   key: string;
   displayName: string;
@@ -444,6 +459,26 @@ export interface IntegrationStatus {
   configured: boolean;
   /** @nullable */
   description?: string | null;
+  /** Whether credentials for this integration can be entered from the UI. */
+  editable: boolean;
+  configuredVia: IntegrationStatusConfiguredVia;
+  fields: IntegrationField[];
+  /** For Gmail, whether the user has soft-disabled sending/polling. */
+  disabled: boolean;
+}
+
+/**
+ * Field name -> value map, matching the integration's `fields`.
+ */
+export type IntegrationCredentialInputValues = {[key: string]: string};
+
+export interface IntegrationCredentialInput {
+  /** Field name -> value map, matching the integration's `fields`. */
+  values: IntegrationCredentialInputValues;
+}
+
+export interface GmailDisabledInput {
+  disabled: boolean;
 }
 
 export interface DashboardSummary {

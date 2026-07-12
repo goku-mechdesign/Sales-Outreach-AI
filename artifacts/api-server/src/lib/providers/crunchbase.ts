@@ -1,7 +1,10 @@
 import type { DiscoveredCompany } from "./apollo";
+import { getCredentialValue } from "../credentials";
 
-export function isCrunchbaseConfigured(): boolean {
-  return Boolean(process.env.CRUNCHBASE_API_KEY);
+export async function isCrunchbaseConfigured(): Promise<boolean> {
+  return Boolean(
+    await getCredentialValue("crunchbase", "apiKey", "CRUNCHBASE_API_KEY"),
+  );
 }
 
 export async function crunchbaseDiscoverCompanies(params: {
@@ -10,7 +13,7 @@ export async function crunchbaseDiscoverCompanies(params: {
   keywords?: string;
   count: number;
 }): Promise<DiscoveredCompany[]> {
-  const key = process.env.CRUNCHBASE_API_KEY;
+  const key = await getCredentialValue("crunchbase", "apiKey", "CRUNCHBASE_API_KEY");
   if (!key) return [];
 
   const res = await fetch(

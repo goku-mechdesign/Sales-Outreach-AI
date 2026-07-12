@@ -98,7 +98,7 @@ router.post("/threads/:id/reply", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!isGmailConfigured()) {
+  if (!(await isGmailConfigured())) {
     res.status(400).json({
       error: "Gmail is not connected. Connect it in Settings > Integrations to reply.",
     });

@@ -13,7 +13,15 @@
  * for the connector's env vars.
  */
 
-export function isGmailConfigured(): boolean {
+import { getStoredValues } from "./credentials";
+
+async function isDisabled(): Promise<boolean> {
+  const stored = await getStoredValues("gmail");
+  return stored?.disabled === "true";
+}
+
+export async function isGmailConfigured(): Promise<boolean> {
+  if (await isDisabled()) return false;
   return false;
 }
 

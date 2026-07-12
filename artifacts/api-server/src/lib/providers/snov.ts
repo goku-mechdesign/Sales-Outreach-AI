@@ -1,7 +1,12 @@
 import type { FoundEmail } from "./hunter";
+import { getCredentialValue } from "../credentials";
 
-export function isSnovConfigured(): boolean {
-  return Boolean(process.env.SNOV_CLIENT_ID && process.env.SNOV_CLIENT_SECRET);
+export async function isSnovConfigured(): Promise<boolean> {
+  const [clientId, clientSecret] = await Promise.all([
+    getCredentialValue("snov", "clientId", "SNOV_CLIENT_ID"),
+    getCredentialValue("snov", "clientSecret", "SNOV_CLIENT_SECRET"),
+  ]);
+  return Boolean(clientId && clientSecret);
 }
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
@@ -10,13 +15,17 @@ async function getSnovToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.token;
   }
+  const [clientId, clientSecret] = await Promise.all([
+    getCredentialValue("snov", "clientId", "SNOV_CLIENT_ID"),
+    getCredentialValue("snov", "clientSecret", "SNOV_CLIENT_SECRET"),
+  ]);
   const res = await fetch("https://api.snov.io/v1/oauth/access_token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: process.env.SNOV_CLIENT_ID ?? "",
-      client_secret: process.env.SNOV_CLIENT_SECRET ?? "",
+      client_id: clientId ?? "",
+      client_secret: clientSecret ?? "",
     }),
   });
   if (!res.ok) {
@@ -36,7 +45,7 @@ async function getSnovToken(): Promise<string> {
 export async function snovFindEmail(
   domain: string,
 ): Promise<FoundEmail | null> {
-  if (!isSnovConfigured()) return null;
+  if (!(await isSnovConfigured())) return null;
   const token = await getSnovToken();
 
   const url = new URL("https://api.snov.io/v2/domain-emails-with-info");

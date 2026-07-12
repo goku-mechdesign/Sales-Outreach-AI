@@ -23,7 +23,7 @@ export interface PollResult {
  * `isGmailConfigured()` first if they want to surface that distinctly.
  */
 export async function pollInboxAndProcess(): Promise<PollResult> {
-  if (!isGmailConfigured()) {
+  if (!(await isGmailConfigured())) {
     return { newMessages: 0, newlyClassified: 0, hotLeads: 0 };
   }
 

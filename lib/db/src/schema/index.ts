@@ -25,3 +25,4 @@ export * from "./emailMessages";
 export * from "./aiActivity";
 export * from "./settings";
 export * from "./notifications";
+export * from "./integrationCredentials";

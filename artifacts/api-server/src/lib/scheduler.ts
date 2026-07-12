@@ -6,11 +6,11 @@ import { processDueFollowups } from "./followups";
 
 let started = false;
 
-export function startScheduler(): void {
+export async function startScheduler(): Promise<void> {
   if (started) return;
   started = true;
 
-  if (!isGmailConfigured()) {
+  if (!(await isGmailConfigured())) {
     logger.warn(
       "Gmail is not connected; background inbox polling and follow-up sending are disabled until it is.",
     );

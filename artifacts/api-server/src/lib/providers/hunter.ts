@@ -1,9 +1,10 @@
 import { logger } from "../logger";
+import { getCredentialValue } from "../credentials";
 
 const HUNTER_BASE = "https://api.hunter.io/v2";
 
-export function isHunterConfigured(): boolean {
-  return Boolean(process.env.HUNTER_API_KEY);
+export async function isHunterConfigured(): Promise<boolean> {
+  return Boolean(await getCredentialValue("hunter", "apiKey", "HUNTER_API_KEY"));
 }
 
 export interface FoundEmail {
@@ -15,7 +16,7 @@ export interface FoundEmail {
 export async function hunterFindEmail(
   domain: string,
 ): Promise<FoundEmail | null> {
-  const key = process.env.HUNTER_API_KEY;
+  const key = await getCredentialValue("hunter", "apiKey", "HUNTER_API_KEY");
   if (!key) return null;
 
   const url = new URL(`${HUNTER_BASE}/domain-search`);
