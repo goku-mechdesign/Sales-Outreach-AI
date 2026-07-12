@@ -3,13 +3,29 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Sales Outreach Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: prospects
+    description: Prospect discovery and management
+  - name: campaigns
+    description: Outreach campaign management
+  - name: threads
+    description: Email inbox / threads
+  - name: ai-activity
+    description: AI usage log
+  - name: settings
+    description: Application settings
+  - name: integrations
+    description: Third-party integration status
+  - name: dashboard
+    description: Dashboard summary
+  - name: notifications
+    description: Hot lead notifications
 paths:
   /healthz:
     get:
@@ -24,7 +40,585 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ---------------------------------------------------------------------
+  # Prospects
+  # ---------------------------------------------------------------------
+  /prospects:
+    get:
+      operationId: listProspects
+      tags: [prospects]
+      summary: List prospects
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProspectStatus"
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        "200":
+          description: Paginated prospects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProspectPage"
+    post:
+      operationId: createProspect
+      tags: [prospects]
+      summary: Manually add a prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+
+  /prospects/discover:
+    post:
+      operationId: discoverProspects
+      tags: [prospects]
+      summary: Run prospect discovery across configured providers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectDiscoveryInput"
+      responses:
+        "200":
+          description: Discovery run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProspectDiscoveryResult"
+
+  /prospects/bulk-status:
+    post:
+      operationId: bulkUpdateProspectStatus
+      tags: [prospects]
+      summary: Approve/reject/update many prospects at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectBulkStatusInput"
+      responses:
+        "200":
+          description: Updated prospects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prospect"
+
+  /prospects/{id}:
+    get:
+      operationId: getProspect
+      tags: [prospects]
+      summary: Get a prospect
+      parameters:
+        - $ref: "#/components/parameters/ProspectId"
+      responses:
+        "200":
+          description: Prospect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateProspect
+      tags: [prospects]
+      summary: Update a prospect
+      parameters:
+        - $ref: "#/components/parameters/ProspectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProspectUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prospect"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteProspect
+      tags: [prospects]
+      summary: Delete a prospect
+      parameters:
+        - $ref: "#/components/parameters/ProspectId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------
+  # Campaigns
+  # ---------------------------------------------------------------------
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List campaigns
+      responses:
+        "200":
+          description: Campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a campaign for selected prospects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get campaign detail with prospects
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "200":
+          description: Campaign detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Edit campaign fields (subject/body/etc) before sending
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteCampaign
+      tags: [campaigns]
+      summary: Delete a campaign
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /campaigns/{id}/generate:
+    post:
+      operationId: generateCampaignEmail
+      tags: [campaigns]
+      summary: Generate subject/body draft with Gemini
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "200":
+          description: Generated draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /campaigns/{id}/send-test:
+    post:
+      operationId: sendTestEmail
+      tags: [campaigns]
+      summary: Send a test email to the account owner
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "200":
+          description: Test email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /campaigns/{id}/send:
+    post:
+      operationId: sendCampaign
+      tags: [campaigns]
+      summary: Send campaign immediately to pending prospects (respecting daily cap)
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "200":
+          description: Send result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSendResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /campaigns/{id}/schedule:
+    post:
+      operationId: scheduleCampaign
+      tags: [campaigns]
+      summary: Schedule campaign for future sending
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignScheduleInput"
+      responses:
+        "200":
+          description: Scheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------------------------------------------------------------------
+  # Email inbox / threads
+  # ---------------------------------------------------------------------
+  /threads:
+    get:
+      operationId: listThreads
+      tags: [threads]
+      summary: List email threads
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/ReplyCategory"
+        - name: isHot
+          in: query
+          schema: { type: boolean }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        "200":
+          description: Paginated threads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailThreadPage"
+
+  /threads/{id}:
+    get:
+      operationId: getThread
+      tags: [threads]
+      summary: Get thread detail with messages
+      parameters:
+        - $ref: "#/components/parameters/ThreadId"
+      responses:
+        "200":
+          description: Thread detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailThreadDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /threads/{id}/reply:
+    post:
+      operationId: sendReply
+      tags: [threads]
+      summary: Send a reply on a thread (approve AI draft or custom text)
+      parameters:
+        - $ref: "#/components/parameters/ThreadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplyInput"
+      responses:
+        "200":
+          description: Reply sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailThreadDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /threads/{id}/generate-draft:
+    post:
+      operationId: generateReplyDraft
+      tags: [threads]
+      summary: Regenerate an AI draft reply for a thread
+      parameters:
+        - $ref: "#/components/parameters/ThreadId"
+      responses:
+        "200":
+          description: Draft generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailThreadDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /email/poll:
+    post:
+      operationId: pollInbox
+      tags: [threads]
+      summary: Manually trigger inbox polling + reply classification now
+      responses:
+        "200":
+          description: Poll result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PollResult"
+
+  # ---------------------------------------------------------------------
+  # AI Activity
+  # ---------------------------------------------------------------------
+  /ai-activity:
+    get:
+      operationId: listAiActivity
+      tags: [ai-activity]
+      summary: List AI activity log entries
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: "#/components/schemas/AiActivityKind"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/AiActivityStatus"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        "200":
+          description: Paginated AI activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiActivityPage"
+
+  # ---------------------------------------------------------------------
+  # Settings
+  # ---------------------------------------------------------------------
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get application settings
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update application settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  # ---------------------------------------------------------------------
+  # Integrations
+  # ---------------------------------------------------------------------
+  /integrations:
+    get:
+      operationId: listIntegrations
+      tags: [integrations]
+      summary: Get connection status of every provider
+      responses:
+        "200":
+          description: Integration statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntegrationStatus"
+
+  # ---------------------------------------------------------------------
+  # Dashboard
+  # ---------------------------------------------------------------------
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary widgets
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  # ---------------------------------------------------------------------
+  # Notifications
+  # ---------------------------------------------------------------------
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List hot-lead notifications
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags: [notifications]
+      summary: Get count of unread notifications
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
+  parameters:
+    ProspectId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    CampaignId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    ThreadId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    NotificationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +628,489 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    ActionResult:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
+    # ------------------------ Prospects ------------------------
+    ProspectStatus:
+      type: string
+      enum:
+        [new, approved, rejected, contacted, replied, hot, not_interested, bounced]
+
+    ProspectSource:
+      type: string
+      enum:
+        [manual, apollo, hunter, snov, clearbit, crunchbase, opencorporates, website]
+
+    Prospect:
+      type: object
+      required:
+        [id, companyName, status, source, confidenceScore, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        companyName: { type: string }
+        website: { type: ["string", "null"] }
+        industry: { type: ["string", "null"] }
+        country: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        detectedLanguage: { type: ["string", "null"] }
+        linkedinUrl: { type: ["string", "null"] }
+        source: { $ref: "#/components/schemas/ProspectSource" }
+        email: { type: ["string", "null"] }
+        contactName: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/ProspectStatus" }
+        confidenceScore: { type: number }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProspectInput:
+      type: object
+      required: [companyName]
+      properties:
+        companyName: { type: string, minLength: 1 }
+        website: { type: string }
+        industry: { type: string }
+        country: { type: string }
+        city: { type: string }
+        linkedinUrl: { type: string }
+        email: { type: string }
+        contactName: { type: string }
+        notes: { type: string }
+
+    ProspectUpdate:
+      type: object
+      properties:
+        companyName: { type: string, minLength: 1 }
+        website: { type: string }
+        industry: { type: string }
+        country: { type: string }
+        city: { type: string }
+        detectedLanguage: { type: string }
+        linkedinUrl: { type: string }
+        email: { type: string }
+        contactName: { type: string }
+        status: { $ref: "#/components/schemas/ProspectStatus" }
+        notes: { type: string }
+
+    ProspectBulkStatusInput:
+      type: object
+      required: [ids, status]
+      properties:
+        ids:
+          type: array
+          items: { type: integer }
+        status: { $ref: "#/components/schemas/ProspectStatus" }
+
+    ProspectPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Prospect" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    ProspectDiscoveryInput:
+      type: object
+      required: [industry, country, count]
+      properties:
+        industry: { type: string, minLength: 1 }
+        country: { type: string, minLength: 1 }
+        city: { type: string }
+        keywords: { type: string }
+        companySize: { type: string }
+        count: { type: integer, minimum: 1, maximum: 50 }
+
+    ProspectDiscoveryResult:
+      type: object
+      required: [created, duplicatesSkipped, providersUsed, providersSkipped]
+      properties:
+        created:
+          type: array
+          items: { $ref: "#/components/schemas/Prospect" }
+        duplicatesSkipped: { type: integer }
+        providersUsed:
+          type: array
+          items: { type: string }
+        providersSkipped:
+          type: array
+          items: { type: string }
+
+    # ------------------------ Campaigns ------------------------
+    CampaignStatus:
+      type: string
+      enum: [draft, scheduled, sending, sent, completed]
+
+    CampaignProspectStatus:
+      type: string
+      enum: [pending, sent, replied, bounced, stopped]
+
+    Campaign:
+      type: object
+      required:
+        [
+          id,
+          name,
+          goal,
+          tone,
+          productDescription,
+          targetAudience,
+          cta,
+          status,
+          followupCount,
+          prospectCount,
+          sentCount,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        goal: { type: string }
+        tone: { type: string }
+        productDescription: { type: string }
+        targetAudience: { type: string }
+        cta: { type: string }
+        subject: { type: ["string", "null"] }
+        body: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/CampaignStatus" }
+        followupCount: { type: integer }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        sentAt: { type: ["string", "null"], format: date-time }
+        prospectCount: { type: integer }
+        sentCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CampaignProspect:
+      type: object
+      required: [id, prospectId, companyName, status, followupStage, createdAt]
+      properties:
+        id: { type: integer }
+        prospectId: { type: integer }
+        companyName: { type: string }
+        contactEmail: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/CampaignProspectStatus" }
+        followupStage: { type: integer }
+        lastEmailAt: { type: ["string", "null"], format: date-time }
+        nextFollowupAt: { type: ["string", "null"], format: date-time }
+        gmailThreadId: { type: ["string", "null"] }
+        stoppedReason: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    CampaignDetail:
+      allOf:
+        - $ref: "#/components/schemas/Campaign"
+        - type: object
+          required: [prospects]
+          properties:
+            prospects:
+              type: array
+              items: { $ref: "#/components/schemas/CampaignProspect" }
+
+    CampaignInput:
+      type: object
+      required:
+        [name, goal, tone, productDescription, targetAudience, cta, prospectIds]
+      properties:
+        name: { type: string, minLength: 1 }
+        goal: { type: string, minLength: 1 }
+        tone: { type: string, minLength: 1 }
+        productDescription: { type: string, minLength: 1 }
+        targetAudience: { type: string, minLength: 1 }
+        cta: { type: string, minLength: 1 }
+        prospectIds:
+          type: array
+          items: { type: integer }
+          minItems: 1
+
+    CampaignUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        goal: { type: string }
+        tone: { type: string }
+        productDescription: { type: string }
+        targetAudience: { type: string }
+        cta: { type: string }
+        subject: { type: string }
+        body: { type: string }
+
+    CampaignScheduleInput:
+      type: object
+      required: [scheduledAt]
+      properties:
+        scheduledAt: { type: string, format: date-time }
+
+    CampaignSendResult:
+      type: object
+      required: [sent, queued, failed, campaign]
+      properties:
+        sent: { type: integer }
+        queued: { type: integer }
+        failed: { type: integer }
+        campaign: { $ref: "#/components/schemas/CampaignDetail" }
+
+    # ------------------------ Threads / inbox ------------------------
+    ReplyCategory:
+      type: string
+      enum:
+        [
+          interested,
+          need_more_info,
+          pricing,
+          meeting_request,
+          not_interested,
+          wrong_contact,
+          out_of_office,
+          spam,
+          other,
+        ]
+
+    EmailDirection:
+      type: string
+      enum: [outgoing, incoming]
+
+    EmailMessageStatus:
+      type: string
+      enum: [sent, draft_pending_approval, approved]
+
+    EmailMessage:
+      type: object
+      required: [id, direction, fromAddress, toAddress, body, status, createdAt]
+      properties:
+        id: { type: integer }
+        direction: { $ref: "#/components/schemas/EmailDirection" }
+        gmailMessageId: { type: ["string", "null"] }
+        fromAddress: { type: string }
+        toAddress: { type: string }
+        subject: { type: ["string", "null"] }
+        body: { type: string }
+        status: { $ref: "#/components/schemas/EmailMessageStatus" }
+        sentAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    EmailThread:
+      type: object
+      required:
+        [
+          id,
+          companyName,
+          subject,
+          isHot,
+          createdAt,
+          lastMessageAt,
+        ]
+      properties:
+        id: { type: integer }
+        prospectId: { type: ["integer", "null"] }
+        companyName: { type: string }
+        gmailThreadId: { type: ["string", "null"] }
+        subject: { type: string }
+        category: { $ref: "#/components/schemas/ReplyCategory" }
+        categoryConfidence: { type: ["number", "null"] }
+        isHot: { type: boolean }
+        aiSummary: { type: ["string", "null"] }
+        lastMessageAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    EmailThreadDetail:
+      allOf:
+        - $ref: "#/components/schemas/EmailThread"
+        - type: object
+          required: [messages]
+          properties:
+            messages:
+              type: array
+              items: { $ref: "#/components/schemas/EmailMessage" }
+            draftReply: { type: ["string", "null"] }
+
+    EmailThreadPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/EmailThread" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    ReplyInput:
+      type: object
+      required: [useDraft]
+      properties:
+        useDraft: { type: boolean }
+        body: { type: string }
+
+    PollResult:
+      type: object
+      required: [newMessages, newlyClassified, hotLeads]
+      properties:
+        newMessages: { type: integer }
+        newlyClassified: { type: integer }
+        hotLeads: { type: integer }
+
+    # ------------------------ AI Activity ------------------------
+    AiActivityKind:
+      type: string
+      enum:
+        [
+          language_detection,
+          email_generation,
+          reply_classification,
+          reply_draft,
+          followup_generation,
+        ]
+
+    AiActivityStatus:
+      type: string
+      enum: [success, error]
+
+    AiActivity:
+      type: object
+      required: [id, kind, prompt, status, createdAt]
+      properties:
+        id: { type: integer }
+        kind: { $ref: "#/components/schemas/AiActivityKind" }
+        prompt: { type: string }
+        response: { type: ["string", "null"] }
+        promptTokens: { type: ["integer", "null"] }
+        completionTokens: { type: ["integer", "null"] }
+        costEstimate: { type: ["number", "null"] }
+        status: { $ref: "#/components/schemas/AiActivityStatus" }
+        errorMessage: { type: ["string", "null"] }
+        relatedProspectId: { type: ["integer", "null"] }
+        relatedCampaignId: { type: ["integer", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    AiActivityPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AiActivity" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    # ------------------------ Settings ------------------------
+    Settings:
+      type: object
+      required:
+        [
+          id,
+          companyName,
+          maxEmailsPerDay,
+          followupDays,
+          autoReplyEnabled,
+          autoReplyCategories,
+          defaultTone,
+          defaultCta,
+        ]
+      properties:
+        id: { type: integer }
+        companyName: { type: string }
+        companyDescription: { type: ["string", "null"] }
+        products: { type: ["string", "null"] }
+        services: { type: ["string", "null"] }
+        website: { type: ["string", "null"] }
+        emailSignature: { type: ["string", "null"] }
+        defaultTone: { type: string }
+        defaultCta: { type: string }
+        maxEmailsPerDay: { type: integer }
+        followupDays:
+          type: array
+          items: { type: integer }
+        autoReplyEnabled: { type: boolean }
+        autoReplyCategories:
+          type: array
+          items: { $ref: "#/components/schemas/ReplyCategory" }
+        notificationEmail: { type: ["string", "null"] }
+        updatedAt: { type: string, format: date-time }
+
+    SettingsUpdate:
+      type: object
+      properties:
+        companyName: { type: string, minLength: 1 }
+        companyDescription: { type: string }
+        products: { type: string }
+        services: { type: string }
+        website: { type: string }
+        emailSignature: { type: string }
+        defaultTone: { type: string }
+        defaultCta: { type: string }
+        maxEmailsPerDay: { type: integer, minimum: 1, maximum: 500 }
+        followupDays:
+          type: array
+          items: { type: integer }
+        autoReplyEnabled: { type: boolean }
+        autoReplyCategories:
+          type: array
+          items: { $ref: "#/components/schemas/ReplyCategory" }
+        notificationEmail: { type: string }
+
+    # ------------------------ Integrations ------------------------
+    IntegrationCategory:
+      type: string
+      enum: [prospect_discovery, ai, email]
+
+    IntegrationStatus:
+      type: object
+      required: [key, displayName, category, configured]
+      properties:
+        key: { type: string }
+        displayName: { type: string }
+        category: { $ref: "#/components/schemas/IntegrationCategory" }
+        configured: { type: boolean }
+        description: { type: ["string", "null"] }
+
+    # ------------------------ Dashboard ------------------------
+    DashboardSummary:
+      type: object
+      required:
+        [
+          prospectsImported,
+          emailsSent,
+          replies,
+          interestedLeads,
+          followupsPending,
+        ]
+      properties:
+        prospectsImported: { type: integer }
+        emailsSent: { type: integer }
+        replies: { type: integer }
+        interestedLeads: { type: integer }
+        followupsPending: { type: integer }
+
+    # ------------------------ Notifications ------------------------
+    Notification:
+      type: object
+      required: [id, title, body, isRead, createdAt]
+      properties:
+        id: { type: integer }
+        threadId: { type: ["integer", "null"] }
+        title: { type: string }
+        body: { type: string }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    UnreadCount:
+      type: object
+      required: [count]
+      properties:
+        count: { type: integer }
