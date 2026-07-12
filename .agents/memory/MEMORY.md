@@ -1,0 +1,2 @@
+- [Monorepo lib dist rebuilds](monorepo-lib-dist-rebuild.md) — editing a lib/* schema/type and typechecking only the consumer can show phantom missing-export errors; always run `pnpm run typecheck:libs` first.
+- [Outreach AI provider architecture](outreach-ai-providers.md) — discovery vs enrichment provider split, LLM fallback strategy, Gmail-optional design used in this project's Outreach AI artifact.

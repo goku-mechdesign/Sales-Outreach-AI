@@ -1,45 +1,32 @@
-# [Project name]
+# Outreach AI
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+## Overview
+Outreach AI is a single-user AI sales outreach platform for rupesh@mechdesign.co. It discovers
+prospect companies, finds contact emails, drafts and sends personalized cold outreach emails via
+Gmail, tracks replies, classifies them with AI, auto-follows-up on non-responders, and flags hot
+leads.
 
-## Run & Operate
-
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
-
-## Stack
-
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
-
-## Where things live
-
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
-
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+## Architecture
+- **Monorepo (pnpm)**: `artifacts/outreach` (React + Vite frontend), `artifacts/api-server`
+  (Express + Drizzle backend), `artifacts/mockup-sandbox` (canvas design sandbox), `lib/db`
+  (Drizzle schema/Postgres), `lib/api-spec` + `lib/api-zod` + `lib/api-client-react` (OpenAPI-first
+  codegen pipeline).
+- **Auth**: Replit-managed Clerk. `requireAuth` middleware restricts the app to a single allowed
+  email (`rupesh@mechdesign.co`); any other Clerk account gets a 403.
+- **AI**: Calls Gemini (`gemini-2.5-flash`) directly via the user's own `GEMINI_API_KEY`, falling
+  back to OpenAI (`gpt-4o-mini`) if that key is absent. Every call is logged to the `ai_activity`
+  table (prompt, response, tokens, status) for the AI Activity page.
+- **Prospect discovery providers**: Apollo, Crunchbase, OpenCorporates (find companies).
+- **Email-finding/enrichment providers**: Hunter (tried first), Snov (fallback), Clearbit
+  (firmographic enrichment). Every provider module exposes `isXConfigured()` and degrades
+  gracefully (skips, doesn't throw) when its key is missing.
+- **Gmail**: not connected yet (the user declined the Gmail connector). `lib/gmail.ts` is a stub
+  that reports itself unconfigured; send/poll routes return a friendly "Gmail is not connected"
+  message instead of failing. The background scheduler (inbox polling every 15 min, follow-ups
+  hourly) skips registering its cron jobs entirely while Gmail is off.
 
 ## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Single user only: sign-in restricted to rupesh@mechdesign.co.
+- Uses own API keys for AI/providers rather than Replit's AI Integrations proxy (which returned
+  `awaiting_account_upgrade` for this account).
+- Declined connecting Gmail for now — revisit if the user asks to connect it later.

@@ -24,6 +24,8 @@ export const replyCategoryValues = [
   "other",
 ] as const;
 
+export type ReplyCategory = (typeof replyCategoryValues)[number];
+
 export const emailThreadsTable = pgTable("email_threads", {
   id: serial("id").primaryKey(),
   prospectId: integer("prospect_id").references(() => prospectsTable.id, {
