@@ -473,6 +473,7 @@ export async function generateFollowupEmail(params: {
   previousSubject: string;
   previousBody: string;
   followupStage: number;
+  language?: string | null;
   companyContext: CompanyContext;
   campaignId?: number;
   prospectId?: number;
@@ -486,6 +487,7 @@ Signature: ${params.companyContext.emailSignature ?? params.companyContext.compa
 
 Recipient company: ${params.companyName}
 Recipient contact name: ${params.contactName ?? "Unknown"}
+${params.language && params.language !== "en" ? `Write the email in language code "${params.language}".` : "Write the email in English."}
 
 This is follow-up #${params.followupStage} to this original email (no reply received yet):
 Subject: ${params.previousSubject}
@@ -503,6 +505,46 @@ Call to action: ${params.campaign.cta}
     json: true,
     relatedCampaignId: params.campaignId,
     relatedProspectId: params.prospectId,
+  });
+  return parseEmailJson(text);
+}
+
+/**
+ * Translates a merge-token email template (subject/body containing literal
+ * `{{contactName}}` / `{{companyName}}` tokens) into another language for
+ * send-time localization, while preserving the tokens verbatim so they can
+ * still be substituted per-recipient afterward. Returns the template
+ * unchanged if no target language or English is requested.
+ */
+export async function translateEmailTemplate(params: {
+  subject: string;
+  body: string;
+  targetLanguage?: string | null;
+  campaignId?: number;
+}): Promise<GeneratedEmail> {
+  const target = params.targetLanguage?.trim().toLowerCase();
+  if (!target || target === "en") {
+    return { subject: params.subject, body: params.body };
+  }
+
+  const systemPrompt =
+    'You translate B2B cold outreach email templates into another language. Preserve tone, meaning, and formatting exactly. The literal merge tokens {{contactName}} and {{companyName}} MUST be copied through completely unchanged, character-for-character, wherever they appear -- never translate, alter, or omit them. Return ONLY valid JSON of the shape {"subject": string, "body": string}.';
+
+  const userPrompt = `
+Translate the following email template into the language with ISO 639-1 code "${target}". Keep the same tone, structure, and line breaks, and do not add or remove content. Do not translate or modify the tokens {{contactName}} or {{companyName}} -- copy them exactly as written.
+
+Subject: ${params.subject}
+
+Body:
+${params.body}
+`.trim();
+
+  const text = await callLlm({
+    kind: "email_generation",
+    systemPrompt,
+    userPrompt,
+    json: true,
+    relatedCampaignId: params.campaignId,
   });
   return parseEmailJson(text);
 }

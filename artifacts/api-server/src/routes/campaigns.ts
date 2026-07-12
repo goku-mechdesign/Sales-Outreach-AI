@@ -30,7 +30,7 @@ import {
   ScheduleCampaignBody,
   ScheduleCampaignResponse,
 } from "@workspace/api-zod";
-import { generateCampaignTemplate } from "../lib/llm";
+import { generateCampaignTemplate, translateEmailTemplate, type GeneratedEmail } from "../lib/llm";
 import { applyMergeTokens } from "../lib/mergeTokens";
 import { isGmailConfigured, sendGmailMessage } from "../lib/gmail";
 import { getOrCreateSettings } from "../lib/settings";
@@ -311,6 +311,26 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
   let sent = 0;
   let failed = 0;
 
+  // Cache the campaign template translated into each prospect's detected
+  // language so we only call the LLM once per unique language, not once per
+  // prospect.
+  const translatedTemplates = new Map<string, GeneratedEmail>();
+  async function templateForLanguage(language: string | null | undefined): Promise<GeneratedEmail> {
+    const code = language?.trim().toLowerCase() || "en";
+    if (code === "en") return { subject: campaign!.subject!, body: campaign!.body! };
+    let translated = translatedTemplates.get(code);
+    if (!translated) {
+      translated = await translateEmailTemplate({
+        subject: campaign!.subject!,
+        body: campaign!.body!,
+        targetLanguage: code,
+        campaignId: campaign!.id,
+      });
+      translatedTemplates.set(code, translated);
+    }
+    return translated;
+  }
+
   for (const cp of toSend) {
     const [prospect] = await db
       .select()
@@ -335,8 +355,9 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
     }
 
     try {
-      const subject = applyMergeTokens(campaign.subject, prospect);
-      const body = applyMergeTokens(campaign.body, prospect);
+      const template = await templateForLanguage(prospect.detectedLanguage);
+      const subject = applyMergeTokens(template.subject, prospect);
+      const body = applyMergeTokens(template.body, prospect);
       const result = await sendGmailMessage({ to: prospect.email, subject, body });
 
       const [thread] = await db
