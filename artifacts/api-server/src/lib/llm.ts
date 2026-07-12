@@ -1,9 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
+import { ai as replitTrialGemini } from "@workspace/integrations-gemini-ai";
 import { db, aiActivityTable, replyCategoryValues, type ReplyCategory } from "@workspace/db";
 import { logger } from "./logger";
 import { getCredentialValue } from "./credentials";
 
-type LlmProvider = "gemini";
+// "gemini" = the user's own Gemini API key (from Integrations or GEMINI_API_KEY
+// env secret). "gemini_trial" = Replit's managed AI integration -- no key
+// required, billed to Replit credits. We prefer the user's own key when
+// present (their own quota/billing) and fall back to the trial provider
+// automatically otherwise, so the app works out of the box.
+type LlmProvider = "gemini" | "gemini_trial";
 type AiActivityKind =
   | "language_detection"
   | "email_generation"
@@ -11,14 +17,20 @@ type AiActivityKind =
   | "reply_draft"
   | "followup_generation";
 
-async function resolveProvider(): Promise<{ provider: LlmProvider; apiKey: string } | null> {
+async function resolveProvider(): Promise<{ provider: LlmProvider; apiKey?: string } | null> {
   const gemini = await getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY");
   if (gemini) return { provider: "gemini", apiKey: gemini };
-  return null;
+  return { provider: "gemini_trial" };
 }
 
 export async function isLlmConfigured(): Promise<boolean> {
   return (await resolveProvider()) !== null;
+}
+
+/** Whether the current LLM provider is the user's own key vs. the Replit trial. */
+export async function getLlmProviderKind(): Promise<LlmProvider> {
+  const resolved = await resolveProvider();
+  return resolved?.provider ?? "gemini_trial";
 }
 
 function getGeminiClient(apiKey: string): GoogleGenAI {
@@ -54,7 +66,7 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
   }
 
   try {
-    const ai = getGeminiClient(resolved.apiKey);
+    const ai = provider === "gemini" ? getGeminiClient(resolved.apiKey!) : replitTrialGemini;
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],

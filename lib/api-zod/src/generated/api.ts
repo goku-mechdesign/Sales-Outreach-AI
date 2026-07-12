@@ -862,7 +862,7 @@ export const ListIntegrationsResponseItem = zod.object({
   "configured": zod.boolean(),
   "description": zod.string().nullish(),
   "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
-  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "configuredVia": zod.enum(['ui', 'environment', 'trial', 'none']),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
@@ -891,7 +891,7 @@ export const SetIntegrationCredentialResponse = zod.object({
   "configured": zod.boolean(),
   "description": zod.string().nullish(),
   "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
-  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "configuredVia": zod.enum(['ui', 'environment', 'trial', 'none']),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
@@ -915,7 +915,7 @@ export const ClearIntegrationCredentialResponse = zod.object({
   "configured": zod.boolean(),
   "description": zod.string().nullish(),
   "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
-  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "configuredVia": zod.enum(['ui', 'environment', 'trial', 'none']),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
@@ -939,7 +939,7 @@ export const SetGmailDisabledResponse = zod.object({
   "configured": zod.boolean(),
   "description": zod.string().nullish(),
   "editable": zod.boolean().describe('Whether credentials for this integration can be entered from the UI.'),
-  "configuredVia": zod.enum(['ui', 'environment', 'none']),
+  "configuredVia": zod.enum(['ui', 'environment', 'trial', 'none']),
   "fields": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
