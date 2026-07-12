@@ -36,6 +36,7 @@ import type {
   HealthStatus,
   IntegrationCredentialInput,
   IntegrationStatus,
+  IntegrationTestResult,
   ListAiActivityParams,
   ListNotificationsParams,
   ListProspectsParams,
@@ -2156,6 +2157,77 @@ export const useClearIntegrationCredential = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getClearIntegrationCredentialMutationOptions(options));
+    }
+
+export const getTestIntegrationUrl = (key: string,) => {
+
+
+
+
+  return `/api/integrations/${key}/test`
+}
+
+/**
+ * @summary Make a live, low-cost call to the provider to verify the configured credentials work
+ */
+export const testIntegration = async (key: string, options?: RequestInit): Promise<IntegrationTestResult> => {
+
+  return customFetch<IntegrationTestResult>(getTestIntegrationUrl(key),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTestIntegrationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testIntegration>>, TError,{key: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testIntegration>>, TError,{key: string}, TContext> => {
+
+const mutationKey = ['testIntegration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testIntegration>>, {key: string}> = (props) => {
+          const {key} = props ?? {};
+
+          return  testIntegration(key,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestIntegrationMutationResult = NonNullable<Awaited<ReturnType<typeof testIntegration>>>
+
+    export type TestIntegrationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Make a live, low-cost call to the provider to verify the configured credentials work
+ */
+export const useTestIntegration = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testIntegration>>, TError,{key: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testIntegration>>,
+        TError,
+        {key: string},
+        TContext
+      > => {
+      return useMutation(getTestIntegrationMutationOptions(options));
     }
 
 export const getSetGmailDisabledUrl = () => {
