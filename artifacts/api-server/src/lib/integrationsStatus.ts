@@ -56,6 +56,7 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
   const [
     geminiKey,
     nvidiaConfigured,
+    openrouterConfigured,
     gmailDisabledValues,
     apolloConfigured,
     hunterConfigured,
@@ -66,6 +67,7 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY"),
     ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
     getCredentialValue("nvidia", "apiKey", "NVIDIA_API_KEY").then(Boolean),
+    getCredentialValue("openrouter", "apiKey", "OPENROUTER_API_KEY").then(Boolean),
     getStoredValues("gmail"),
     isApolloConfigured(),
     isHunterConfigured(),
@@ -73,8 +75,16 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
   ]);
 
   // The active LLM provider follows the same precedence as resolveProvider()
-  // in llm.ts: NVIDIA key (if set) beats Gemini key, which beats the trial.
-  const geminiActive = !nvidiaConfigured;
+  // in llm.ts: NVIDIA key (if set) beats OpenRouter, which beats a configured
+  // Gemini key, which beats the trial fallback.
+  const nvidiaActive = nvidiaConfigured;
+  const openrouterActive = !nvidiaActive && openrouterConfigured;
+  const geminiActive = !nvidiaActive && !openrouterActive;
+  const inactiveNote = nvidiaActive
+    ? "NVIDIA"
+    : openrouterActive
+      ? "OpenRouter"
+      : null;
 
   return Promise.all([
     buildEntry({
@@ -86,7 +96,7 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       configuredVia: geminiActive && !geminiKey.configured ? "trial" : undefined,
       description:
         !geminiActive
-          ? "Powers email generation, language detection, and reply classification. Currently inactive — NVIDIA is configured and takes priority. Remove the NVIDIA key to switch back to Gemini."
+          ? `Powers email generation, language detection, and reply classification. Currently inactive — ${inactiveNote} is configured and takes priority. Remove that key to switch back to Gemini.`
           : geminiKey.configured
             ? "Powers email generation, language detection, and reply classification."
             : "Powers email generation, language detection, and reply classification. Currently running on Replit's free AI trial (billed to your Replit credits) — add your own Gemini key above to use your own quota.",
@@ -98,7 +108,20 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       configured: nvidiaConfigured,
       editable: true,
       description:
-        "Alternative LLM provider (NVIDIA NIM, OpenAI-compatible) for email generation, language detection, and reply classification. Takes priority over Gemini when configured.",
+        "Alternative LLM provider (NVIDIA NIM, OpenAI-compatible) for email generation, language detection, and reply classification. Takes priority over OpenRouter and Gemini when configured.",
+    }),
+    buildEntry({
+      key: "openrouter",
+      displayName: "OpenRouter",
+      category: "ai",
+      configured: openrouterConfigured,
+      editable: true,
+      description:
+        !openrouterConfigured
+          ? "Alternative LLM provider giving access to many models (Llama, Mistral, DeepSeek, and more) through one API key. Used when configured and NVIDIA isn't."
+          : nvidiaActive
+            ? "Alternative LLM provider giving access to many models through one API key. Currently inactive — NVIDIA is configured and takes priority."
+            : "Alternative LLM provider giving access to many models through one API key. Currently active for email generation, language detection, and reply classification.",
     }),
     buildEntry({
       key: "gmail",
