@@ -5,11 +5,17 @@ import { logger } from "./logger";
 import { getCredentialValue } from "./credentials";
 
 // "gemini" = the user's own Gemini API key (from Integrations or GEMINI_API_KEY
-// env secret). "gemini_trial" = Replit's managed AI integration -- no key
-// required, billed to Replit credits. We prefer the user's own key when
-// present (their own quota/billing) and fall back to the trial provider
-// automatically otherwise, so the app works out of the box.
-type LlmProvider = "gemini" | "gemini_trial";
+// env secret). "nvidia" = the user's own NVIDIA NIM API key (OpenAI-compatible
+// endpoint), an alternative BYO provider. "gemini_trial" = Replit's managed
+// AI integration -- no key required, billed to Replit credits. Precedence:
+// an explicitly configured NVIDIA key wins (it was added on purpose), then a
+// configured Gemini key, then the zero-config trial fallback so the app
+// works out of the box.
+type LlmProvider = "gemini" | "nvidia" | "gemini_trial";
+
+const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+const NVIDIA_DEFAULT_MODEL = "meta/llama-3.3-70b-instruct";
+
 type AiActivityKind =
   | "language_detection"
   | "email_generation"
@@ -17,10 +23,60 @@ type AiActivityKind =
   | "reply_draft"
   | "followup_generation";
 
-async function resolveProvider(): Promise<{ provider: LlmProvider; apiKey?: string } | null> {
+async function resolveProvider(): Promise<
+  { provider: LlmProvider; apiKey?: string; model?: string } | null
+> {
+  const nvidia = await getCredentialValue("nvidia", "apiKey", "NVIDIA_API_KEY");
+  if (nvidia) {
+    const model = await getCredentialValue("nvidia", "model");
+    return { provider: "nvidia", apiKey: nvidia, model: model || undefined };
+  }
   const gemini = await getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY");
   if (gemini) return { provider: "gemini", apiKey: gemini };
   return { provider: "gemini_trial" };
+}
+
+interface NvidiaChatCompletion {
+  choices?: { message?: { content?: string } }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+async function callNvidia(params: {
+  apiKey: string;
+  model?: string;
+  systemPrompt: string;
+  userPrompt: string;
+  json?: boolean;
+}): Promise<{ text: string; promptTokens: number | null; completionTokens: number | null }> {
+  const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: params.model || NVIDIA_DEFAULT_MODEL,
+      messages: [
+        { role: "system", content: params.systemPrompt },
+        { role: "user", content: params.userPrompt },
+      ],
+      max_tokens: 8192,
+      ...(params.json ? { response_format: { type: "json_object" } } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`NVIDIA API error (${response.status}): ${body || response.statusText}`);
+  }
+
+  const data = (await response.json()) as NvidiaChatCompletion;
+  const text = data.choices?.[0]?.message?.content ?? "";
+  return {
+    text,
+    promptTokens: data.usage?.prompt_tokens ?? null,
+    completionTokens: data.usage?.completion_tokens ?? null,
+  };
 }
 
 export async function isLlmConfigured(): Promise<boolean> {
@@ -56,33 +112,53 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
       kind: opts.kind,
       prompt: fullPrompt,
       status: "error",
-      errorMessage: "No LLM provider configured. Add GEMINI_API_KEY.",
+      errorMessage: "No LLM provider configured. Add a Gemini or NVIDIA API key.",
       relatedProspectId: opts.relatedProspectId ?? null,
       relatedCampaignId: opts.relatedCampaignId ?? null,
     });
     throw new Error(
-      "No LLM provider configured. Add GEMINI_API_KEY in Settings > Integrations.",
+      "No LLM provider configured. Add a Gemini or NVIDIA API key in Settings > Integrations.",
     );
   }
 
   try {
-    const ai = provider === "gemini" ? getGeminiClient(resolved.apiKey!) : replitTrialGemini;
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
-      config: {
-        systemInstruction: opts.systemPrompt,
-        maxOutputTokens: 8192,
-        ...(opts.json ? { responseMimeType: "application/json" } : {}),
-      },
-    });
-    const text = response.text ?? "";
+    let text: string;
+    let promptTokens: number | null;
+    let completionTokens: number | null;
+
+    if (provider === "nvidia") {
+      const result = await callNvidia({
+        apiKey: resolved.apiKey!,
+        model: resolved.model,
+        systemPrompt: opts.systemPrompt,
+        userPrompt: opts.userPrompt,
+        json: opts.json,
+      });
+      text = result.text;
+      promptTokens = result.promptTokens;
+      completionTokens = result.completionTokens;
+    } else {
+      const ai = provider === "gemini" ? getGeminiClient(resolved.apiKey!) : replitTrialGemini;
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
+        config: {
+          systemInstruction: opts.systemPrompt,
+          maxOutputTokens: 8192,
+          ...(opts.json ? { responseMimeType: "application/json" } : {}),
+        },
+      });
+      text = response.text ?? "";
+      promptTokens = response.usageMetadata?.promptTokenCount ?? null;
+      completionTokens = response.usageMetadata?.candidatesTokenCount ?? null;
+    }
+
     await db.insert(aiActivityTable).values({
       kind: opts.kind,
       prompt: fullPrompt,
       response: text,
-      promptTokens: response.usageMetadata?.promptTokenCount ?? null,
-      completionTokens: response.usageMetadata?.candidatesTokenCount ?? null,
+      promptTokens,
+      completionTokens,
       status: "success",
       relatedProspectId: opts.relatedProspectId ?? null,
       relatedCampaignId: opts.relatedCampaignId ?? null,

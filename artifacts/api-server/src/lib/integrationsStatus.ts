@@ -53,29 +53,52 @@ async function buildEntry(params: {
 }
 
 export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]> {
-  const [geminiKey, gmailDisabledValues, apolloConfigured, hunterConfigured, gmailConfigured] =
-    await Promise.all([
-      Promise.all([
-        hasStoredOverride("gemini"),
-        getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY"),
-      ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
-      getStoredValues("gmail"),
-      isApolloConfigured(),
-      isHunterConfigured(),
-      isGmailConfigured(),
-    ]);
+  const [
+    geminiKey,
+    nvidiaConfigured,
+    gmailDisabledValues,
+    apolloConfigured,
+    hunterConfigured,
+    gmailConfigured,
+  ] = await Promise.all([
+    Promise.all([
+      hasStoredOverride("gemini"),
+      getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY"),
+    ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
+    getCredentialValue("nvidia", "apiKey", "NVIDIA_API_KEY").then(Boolean),
+    getStoredValues("gmail"),
+    isApolloConfigured(),
+    isHunterConfigured(),
+    isGmailConfigured(),
+  ]);
+
+  // The active LLM provider follows the same precedence as resolveProvider()
+  // in llm.ts: NVIDIA key (if set) beats Gemini key, which beats the trial.
+  const geminiActive = !nvidiaConfigured;
 
   return Promise.all([
     buildEntry({
       key: "gemini",
       displayName: "Gemini",
       category: "ai",
-      configured: true,
+      configured: geminiActive,
       editable: true,
-      configuredVia: geminiKey.configured ? undefined : "trial",
-      description: geminiKey.configured
-        ? "Powers email generation, language detection, and reply classification."
-        : "Powers email generation, language detection, and reply classification. Currently running on Replit's free AI trial (billed to your Replit credits) — add your own Gemini key above to use your own quota.",
+      configuredVia: geminiActive && !geminiKey.configured ? "trial" : undefined,
+      description:
+        !geminiActive
+          ? "Powers email generation, language detection, and reply classification. Currently inactive — NVIDIA is configured and takes priority. Remove the NVIDIA key to switch back to Gemini."
+          : geminiKey.configured
+            ? "Powers email generation, language detection, and reply classification."
+            : "Powers email generation, language detection, and reply classification. Currently running on Replit's free AI trial (billed to your Replit credits) — add your own Gemini key above to use your own quota.",
+    }),
+    buildEntry({
+      key: "nvidia",
+      displayName: "NVIDIA",
+      category: "ai",
+      configured: nvidiaConfigured,
+      editable: true,
+      description:
+        "Alternative LLM provider (NVIDIA NIM, OpenAI-compatible) for email generation, language detection, and reply classification. Takes priority over Gemini when configured.",
     }),
     buildEntry({
       key: "gmail",
