@@ -238,6 +238,93 @@ function stripFences(text: string): string {
     .trim();
 }
 
+/**
+ * Some providers/models don't respect `response_format: json_object` and
+ * either wrap the JSON in prose or emit raw, unescaped control characters
+ * (literal newlines/tabs) inside string values -- both of which make
+ * `JSON.parse` throw even though the payload is "obviously" valid JSON to a
+ * human. This walks the string tracking whether we're inside a JSON string
+ * literal and escapes/drops control characters only there, leaving
+ * structural whitespace untouched.
+ */
+function sanitizeJsonControlChars(text: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (!inString) {
+      if (ch === '"') inString = true;
+      result += ch;
+      continue;
+    }
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = false;
+      result += ch;
+      continue;
+    }
+    if (ch === "\n") {
+      result += "\\n";
+      continue;
+    }
+    if (ch === "\r") {
+      result += "\\r";
+      continue;
+    }
+    if (ch === "\t") {
+      result += "\\t";
+      continue;
+    }
+    if (ch.charCodeAt(0) < 0x20) continue; // drop other stray control chars
+    result += ch;
+  }
+  return result;
+}
+
+/** If the model wrapped the JSON in explanatory prose, pull out the {...} block. */
+function extractJsonBlock(text: string): string {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return text;
+  return text.slice(start, end + 1);
+}
+
+/**
+ * Best-effort JSON parsing for LLM output: tries the raw text, then a
+ * version with stray control characters sanitized, then narrows to the
+ * first {...} block and retries both, before giving up with the original
+ * error.
+ */
+function parseJsonLenient(rawText: string): unknown {
+  const candidates = [stripFences(rawText)];
+  const block = extractJsonBlock(candidates[0]);
+  if (block !== candidates[0]) candidates.push(block);
+
+  let lastError: unknown;
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (err) {
+      lastError = err;
+    }
+    try {
+      return JSON.parse(sanitizeJsonControlChars(candidate));
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 export async function detectLanguage(
   text: string,
   prospectId?: number,
@@ -263,7 +350,7 @@ export interface GeneratedEmail {
 }
 
 function parseEmailJson(text: string): GeneratedEmail {
-  const parsed = JSON.parse(stripFences(text));
+  const parsed = parseJsonLenient(text) as { subject?: unknown; body?: unknown };
   if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
     throw new Error("LLM returned malformed email JSON");
   }
@@ -437,13 +524,19 @@ export async function classifyReply(params: {
     kind: "reply_classification",
     systemPrompt,
     userPrompt: params.emailBody.slice(0, 4000),
+    json: true,
   });
-  const parsed = JSON.parse(stripFences(text));
-  const category = (replyCategoryValues as readonly string[]).includes(
-    parsed.category,
-  )
-    ? (parsed.category as ReplyCategory)
-    : "other";
+  const parsed = parseJsonLenient(text) as {
+    category?: unknown;
+    confidence?: unknown;
+    isHot?: unknown;
+    summary?: unknown;
+  };
+  const category =
+    typeof parsed.category === "string" &&
+    (replyCategoryValues as readonly string[]).includes(parsed.category)
+      ? (parsed.category as ReplyCategory)
+      : "other";
   return {
     category,
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
