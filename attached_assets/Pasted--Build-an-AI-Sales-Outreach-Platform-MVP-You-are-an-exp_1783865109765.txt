@@ -1,0 +1,684 @@
+# Build an AI Sales Outreach Platform (MVP)
+
+You are an experienced full-stack software engineer.
+
+Build a production-quality web application using:
+
+* Next.js 15 (App Router)
+* TypeScript
+* Tailwind CSS
+* shadcn/ui
+* Neon PostgreSQL
+* Prisma ORM
+* NextAuth/Auth.js (Google Login)
+* Gemini API (Google AI Studio Free Tier)
+* Gmail API (Google Workspace)
+* Vercel compatible deployment
+
+The application should be modular, cleanly organized, and follow best practices.
+
+---
+
+# Objective
+
+Build an AI-powered outbound sales platform that can:
+
+1. Find prospect companies.
+2. Find company contact email addresses.
+3. Generate personalized outreach emails in the prospect's language.
+4. Send emails from my Google Workspace account.
+5. Read replies.
+6. Draft replies.
+7. Automatically follow up.
+8. Notify me when someone is interested.
+
+This is an MVP.
+
+Expected volume:
+
+* 100 outbound emails/month
+* 10-20 replies/month
+
+Optimize for simplicity rather than scale.
+
+---
+
+# Authentication
+
+Use Google Login.
+
+Only one user exists.
+
+My email:
+
+[rupesh@mechdesign.co](mailto:rupesh@mechdesign.co)
+
+No multi-tenancy.
+
+---
+
+# Dashboard
+
+Create a dashboard with:
+
+Sidebar
+
+* Dashboard
+* Prospects
+* Campaigns
+* Email Inbox
+* AI Activity
+* Integrations
+* Settings
+
+Dashboard widgets
+
+* Prospects Imported
+* Emails Sent
+* Replies
+* Interested Leads
+* Follow-ups Pending
+
+---
+
+# Database
+
+Use Prisma with Neon.
+
+Models should include:
+
+User
+
+Prospect
+
+* companyName
+* website
+* industry
+* country
+* detectedLanguage
+* linkedinUrl
+* source
+* email
+* contactName
+* status
+
+Campaign
+
+* subject
+* body
+* status
+* sentAt
+* followupCount
+
+EmailThread
+
+IncomingEmail
+
+OutgoingEmail
+
+Task
+
+AIActivity
+
+Settings
+
+---
+
+# Prospect Discovery
+
+Create a page called:
+
+Prospect Finder
+
+User enters:
+
+* Industry
+* Country
+* City (optional)
+* Keywords
+* Company Size
+* Number of prospects
+
+The app should aggregate results from:
+
+Google Maps API
+
+Apollo Free Tier
+
+Crunchbase
+
+LinkedIn Company Pages
+
+Clearbit Company API
+
+Hunter.io
+
+Snov.io
+
+OpenCorporates
+
+Company Website
+
+Design this as a provider architecture.
+
+Example:
+
+ProspectProvider
+
+GoogleMapsProvider
+
+ApolloProvider
+
+HunterProvider
+
+etc.
+
+Each provider should return a normalized Prospect object.
+
+Deduplicate companies.
+
+Display confidence score.
+
+---
+
+# Email Discovery
+
+For each company:
+
+Collect:
+
+Company Name
+
+Website
+
+Business Email
+
+Contact Email
+
+LinkedIn
+
+Country
+
+Language
+
+Industry
+
+Website Metadata
+
+Only use publicly available business contact information and official company contact details. Do not scrape or generate personal email addresses.
+
+Store confidence score.
+
+---
+
+# Prospect Review
+
+Display table:
+
+Company
+
+Website
+
+Email
+
+Country
+
+Language
+
+Industry
+
+Confidence
+
+Status
+
+Checkbox
+
+Bulk Select
+
+Approve
+
+Reject
+
+Export CSV
+
+---
+
+# Campaign Creation
+
+User selects prospects.
+
+Click:
+
+Create Campaign
+
+User enters:
+
+Campaign Name
+
+Goal
+
+Tone
+
+Product Description
+
+Target Audience
+
+CTA
+
+Gemini generates:
+
+Subject
+
+Email Body
+
+Preview
+
+Allow editing before sending.
+
+---
+
+# Language Detection
+
+Use Gemini.
+
+Detect the prospect's preferred business language.
+
+Generate email in that language.
+
+If uncertain:
+
+Use English.
+
+---
+
+# Gmail Integration
+
+Connect my Google Workspace account.
+
+Email:
+
+[rupesh@mechdesign.co](mailto:rupesh@mechdesign.co)
+
+Use Gmail API.
+
+DO NOT use SMTP.
+
+Support:
+
+OAuth
+
+Send Email
+
+Read Inbox
+
+Read Sent
+
+Threading
+
+Labels
+
+Drafts
+
+---
+
+# Sending
+
+Send emails from:
+
+[rupesh@mechdesign.co](mailto:rupesh@mechdesign.co)
+
+Use Gmail threads correctly.
+
+Support:
+
+Send Test
+
+Schedule
+
+Immediate Send
+
+Rate limit:
+
+Maximum 20/day.
+
+---
+
+# Reply Detection
+
+Every few minutes:
+
+Read Gmail.
+
+Find replies.
+
+Store thread.
+
+Run Gemini classification.
+
+Categories:
+
+Interested
+
+Need More Info
+
+Pricing
+
+Meeting Request
+
+Not Interested
+
+Wrong Contact
+
+Out of Office
+
+Spam
+
+Other
+
+Store confidence.
+
+---
+
+# AI Reply
+
+If reply is:
+
+Need More Info
+
+Pricing
+
+General Question
+
+Gemini drafts a reply.
+
+Show draft for approval by default.
+
+Provide an optional setting to auto-send replies for these categories.
+
+---
+
+# Follow-ups
+
+Automatic follow-up schedule:
+
+Initial Email
+
+3 Days
+
+7 Days
+
+14 Days
+
+Stop follow-ups immediately if any reply is received.
+
+Gemini generates unique follow-up emails.
+
+Avoid repeating wording.
+
+---
+
+# Human Handoff
+
+If Gemini classifies:
+
+Interested
+
+Meeting Request
+
+Demo Request
+
+Budget Discussion
+
+Technical Discussion
+
+Procurement
+
+Then:
+
+Stop automation.
+
+Mark lead:
+
+HOT
+
+Notify me.
+
+Dashboard notification.
+
+Email notification.
+
+Include:
+
+Company
+
+Thread Summary
+
+Original Emails
+
+Latest Reply
+
+AI Summary
+
+Open Gmail Thread button.
+
+---
+
+# Integrations Page
+
+Allow configuration of API keys.
+
+Google Maps
+
+Gemini
+
+Apollo
+
+Hunter
+
+Snov
+
+Clearbit
+
+Crunchbase
+
+OpenCorporates
+
+Google OAuth
+
+Gmail
+
+Store encrypted.
+
+---
+
+# AI Activity
+
+Display:
+
+Prompt
+
+Response
+
+Tokens
+
+Cost Estimate
+
+Timestamp
+
+Status
+
+---
+
+# Settings
+
+Company Name
+
+Company Description
+
+Products
+
+Services
+
+Website
+
+Email Signature
+
+Default Tone
+
+Default CTA
+
+Maximum Emails Per Day
+
+Follow-up Timing
+
+Auto Reply Enabled
+
+Auto Reply Categories
+
+---
+
+# UI
+
+Modern SaaS design.
+
+Use shadcn/ui.
+
+Responsive.
+
+Loading skeletons.
+
+Dark mode.
+
+Search.
+
+Pagination.
+
+Toast notifications.
+
+Command palette.
+
+---
+
+# Background Jobs
+
+Create background jobs for:
+
+Prospect enrichment
+
+Email sending
+
+Inbox polling
+
+Follow-up scheduling
+
+Reply classification
+
+Use a simple job scheduler suitable for a Next.js application.
+
+---
+
+# API Routes
+
+Organize API routes cleanly.
+
+Use server actions where appropriate.
+
+Validate inputs with Zod.
+
+---
+
+# Error Handling
+
+Retry failed API calls.
+
+Log errors.
+
+Gracefully handle API quota limits.
+
+---
+
+# Security
+
+Never expose API keys to the client.
+
+Encrypt sensitive tokens.
+
+Protect Gmail OAuth tokens.
+
+Use environment variables.
+
+---
+
+# Code Quality
+
+Use:
+
+TypeScript
+
+Prisma
+
+Reusable React components
+
+Repository pattern
+
+Service layer
+
+Provider pattern
+
+Strict typing
+
+ESLint
+
+Prettier
+
+Clean folder structure
+
+No duplicated code.
+
+---
+
+# Seed Data
+
+Provide sample prospects.
+
+Provide demo campaigns.
+
+Provide sample inbox messages.
+
+---
+
+# README
+
+Include complete setup instructions.
+
+Explain:
+
+Google OAuth setup
+
+Gmail API setup
+
+Gemini setup
+
+Neon setup
+
+Google Maps setup
+
+Apollo setup
+
+Hunter setup
+
+Snov setup
+
+Clearbit setup
+
+Crunchbase setup
+
+Environment variables
+
+Running locally
+
+Deployment on Vercel
+
+---
+
+The final application should feel like a lightweight version of Apollo.io combined with Mailshake, focused on AI-assisted outbound sales. It should prioritize clean architecture, maintainability, and a polished user experience over excessive complexity.
