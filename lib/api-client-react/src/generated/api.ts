@@ -31,7 +31,10 @@ import type {
   DashboardSummary,
   EmailThreadDetail,
   EmailThreadPage,
+  ErrorResponse,
+  GmailDisabledInput,
   HealthStatus,
+  IntegrationCredentialInput,
   IntegrationStatus,
   ListAiActivityParams,
   ListNotificationsParams,
@@ -2011,6 +2014,220 @@ export function useListIntegrations<TData = Awaited<ReturnType<typeof listIntegr
 
 
 
+
+export const getSetIntegrationCredentialUrl = (key: string,) => {
+
+
+
+
+  return `/api/integrations/${key}`
+}
+
+/**
+ * @summary Set or update stored credentials for an integration
+ */
+export const setIntegrationCredential = async (key: string,
+    integrationCredentialInput: IntegrationCredentialInput, options?: RequestInit): Promise<IntegrationStatus> => {
+
+  return customFetch<IntegrationStatus>(getSetIntegrationCredentialUrl(key),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(integrationCredentialInput)
+  }
+);}
+
+
+
+
+
+export const getSetIntegrationCredentialMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setIntegrationCredential>>, TError,{key: string;data: BodyType<IntegrationCredentialInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setIntegrationCredential>>, TError,{key: string;data: BodyType<IntegrationCredentialInput>}, TContext> => {
+
+const mutationKey = ['setIntegrationCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setIntegrationCredential>>, {key: string;data: BodyType<IntegrationCredentialInput>}> = (props) => {
+          const {key,data} = props ?? {};
+
+          return  setIntegrationCredential(key,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetIntegrationCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof setIntegrationCredential>>>
+    export type SetIntegrationCredentialMutationBody = BodyType<IntegrationCredentialInput>
+    export type SetIntegrationCredentialMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set or update stored credentials for an integration
+ */
+export const useSetIntegrationCredential = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setIntegrationCredential>>, TError,{key: string;data: BodyType<IntegrationCredentialInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setIntegrationCredential>>,
+        TError,
+        {key: string;data: BodyType<IntegrationCredentialInput>},
+        TContext
+      > => {
+      return useMutation(getSetIntegrationCredentialMutationOptions(options));
+    }
+
+export const getClearIntegrationCredentialUrl = (key: string,) => {
+
+
+
+
+  return `/api/integrations/${key}`
+}
+
+/**
+ * @summary Clear stored UI credentials for an integration, reverting to environment defaults
+ */
+export const clearIntegrationCredential = async (key: string, options?: RequestInit): Promise<IntegrationStatus> => {
+
+  return customFetch<IntegrationStatus>(getClearIntegrationCredentialUrl(key),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearIntegrationCredentialMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearIntegrationCredential>>, TError,{key: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearIntegrationCredential>>, TError,{key: string}, TContext> => {
+
+const mutationKey = ['clearIntegrationCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearIntegrationCredential>>, {key: string}> = (props) => {
+          const {key} = props ?? {};
+
+          return  clearIntegrationCredential(key,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearIntegrationCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof clearIntegrationCredential>>>
+
+    export type ClearIntegrationCredentialMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Clear stored UI credentials for an integration, reverting to environment defaults
+ */
+export const useClearIntegrationCredential = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearIntegrationCredential>>, TError,{key: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof clearIntegrationCredential>>,
+        TError,
+        {key: string},
+        TContext
+      > => {
+      return useMutation(getClearIntegrationCredentialMutationOptions(options));
+    }
+
+export const getSetGmailDisabledUrl = () => {
+
+
+
+
+  return `/api/integrations/gmail/disabled`
+}
+
+/**
+ * @summary Toggle whether the app should use the connected Gmail account
+ */
+export const setGmailDisabled = async (gmailDisabledInput: GmailDisabledInput, options?: RequestInit): Promise<IntegrationStatus> => {
+
+  return customFetch<IntegrationStatus>(getSetGmailDisabledUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(gmailDisabledInput)
+  }
+);}
+
+
+
+
+
+export const getSetGmailDisabledMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGmailDisabled>>, TError,{data: BodyType<GmailDisabledInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setGmailDisabled>>, TError,{data: BodyType<GmailDisabledInput>}, TContext> => {
+
+const mutationKey = ['setGmailDisabled'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setGmailDisabled>>, {data: BodyType<GmailDisabledInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setGmailDisabled(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetGmailDisabledMutationResult = NonNullable<Awaited<ReturnType<typeof setGmailDisabled>>>
+    export type SetGmailDisabledMutationBody = BodyType<GmailDisabledInput>
+    export type SetGmailDisabledMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Toggle whether the app should use the connected Gmail account
+ */
+export const useSetGmailDisabled = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGmailDisabled>>, TError,{data: BodyType<GmailDisabledInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setGmailDisabled>>,
+        TError,
+        {data: BodyType<GmailDisabledInput>},
+        TContext
+      > => {
+      return useMutation(getSetGmailDisabledMutationOptions(options));
+    }
 
 export const getGetDashboardSummaryUrl = () => {
 

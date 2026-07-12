@@ -1,7 +1,9 @@
+import { getCredentialValue } from "../credentials";
+
 const APOLLO_BASE = "https://api.apollo.io/v1";
 
-export function isApolloConfigured(): boolean {
-  return Boolean(process.env.APOLLO_API_KEY);
+export async function isApolloConfigured(): Promise<boolean> {
+  return Boolean(await getCredentialValue("apollo", "apiKey", "APOLLO_API_KEY"));
 }
 
 export interface DiscoveredCompany {
@@ -20,7 +22,7 @@ export async function apolloDiscoverCompanies(params: {
   keywords?: string;
   count: number;
 }): Promise<DiscoveredCompany[]> {
-  const key = process.env.APOLLO_API_KEY;
+  const key = await getCredentialValue("apollo", "apiKey", "APOLLO_API_KEY");
   if (!key) return [];
 
   const res = await fetch(`${APOLLO_BASE}/mixed_companies/search`, {

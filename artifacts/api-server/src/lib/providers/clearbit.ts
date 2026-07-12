@@ -1,5 +1,7 @@
-export function isClearbitConfigured(): boolean {
-  return Boolean(process.env.CLEARBIT_API_KEY);
+import { getCredentialValue } from "../credentials";
+
+export async function isClearbitConfigured(): Promise<boolean> {
+  return Boolean(await getCredentialValue("clearbit", "apiKey", "CLEARBIT_API_KEY"));
 }
 
 export interface ClearbitEnrichment {
@@ -11,7 +13,7 @@ export interface ClearbitEnrichment {
 export async function clearbitEnrichCompany(
   domain: string,
 ): Promise<ClearbitEnrichment | null> {
-  const key = process.env.CLEARBIT_API_KEY;
+  const key = await getCredentialValue("clearbit", "apiKey", "CLEARBIT_API_KEY");
   if (!key) return null;
 
   const res = await fetch(

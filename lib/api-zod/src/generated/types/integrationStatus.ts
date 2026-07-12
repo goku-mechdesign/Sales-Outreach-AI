@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { IntegrationCategory } from './integrationCategory';
+import type { IntegrationField } from './integrationField';
+import type { IntegrationStatusConfiguredVia } from './integrationStatusConfiguredVia';
 
 export interface IntegrationStatus {
   key: string;
@@ -14,4 +16,10 @@ export interface IntegrationStatus {
   configured: boolean;
   /** @nullable */
   description?: string | null;
+  /** Whether credentials for this integration can be entered from the UI. */
+  editable: boolean;
+  configuredVia: IntegrationStatusConfiguredVia;
+  fields: IntegrationField[];
+  /** For Gmail, whether the user has soft-disabled sending/polling. */
+  disabled: boolean;
 }

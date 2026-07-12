@@ -24,7 +24,7 @@ export interface FollowupRunResult {
  * if Gmail is not connected.
  */
 export async function processDueFollowups(): Promise<FollowupRunResult> {
-  if (!isGmailConfigured()) {
+  if (!(await isGmailConfigured())) {
     return { sent: 0, failed: 0 };
   }
 

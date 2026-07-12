@@ -1,7 +1,10 @@
 import type { DiscoveredCompany } from "./apollo";
+import { getCredentialValue } from "../credentials";
 
-export function isOpenCorporatesConfigured(): boolean {
-  return Boolean(process.env.OPENCORPORATES_API_KEY);
+export async function isOpenCorporatesConfigured(): Promise<boolean> {
+  return Boolean(
+    await getCredentialValue("opencorporates", "apiKey", "OPENCORPORATES_API_KEY"),
+  );
 }
 
 const COUNTRY_CODES: Record<string, string> = {
@@ -33,7 +36,11 @@ export async function opencorporatesDiscoverCompanies(params: {
   keywords?: string;
   count: number;
 }): Promise<DiscoveredCompany[]> {
-  const key = process.env.OPENCORPORATES_API_KEY;
+  const key = await getCredentialValue(
+    "opencorporates",
+    "apiKey",
+    "OPENCORPORATES_API_KEY",
+  );
   if (!key) return [];
 
   const url = new URL("https://api.opencorporates.com/v0.4/companies/search");

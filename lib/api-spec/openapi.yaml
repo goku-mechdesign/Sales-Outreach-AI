@@ -520,6 +520,72 @@ paths:
                 items:
                   $ref: "#/components/schemas/IntegrationStatus"
 
+  /integrations/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      operationId: setIntegrationCredential
+      tags: [integrations]
+      summary: Set or update stored credentials for an integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationCredentialInput"
+      responses:
+        "200":
+          description: Updated integration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatus"
+        "400":
+          description: Invalid key or values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: clearIntegrationCredential
+      tags: [integrations]
+      summary: Clear stored UI credentials for an integration, reverting to environment defaults
+      responses:
+        "200":
+          description: Updated integration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatus"
+        "400":
+          description: Invalid key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /integrations/gmail/disabled:
+    put:
+      operationId: setGmailDisabled
+      tags: [integrations]
+      summary: Toggle whether the app should use the connected Gmail account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GmailDisabledInput"
+      responses:
+        "200":
+          description: Updated integration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatus"
+
   # ---------------------------------------------------------------------
   # Dashboard
   # ---------------------------------------------------------------------
@@ -1069,15 +1135,60 @@ components:
       type: string
       enum: [prospect_discovery, ai, email]
 
+    IntegrationField:
+      type: object
+      required: [name, label, secret]
+      properties:
+        name: { type: string }
+        label: { type: string }
+        secret: { type: boolean }
+
     IntegrationStatus:
       type: object
-      required: [key, displayName, category, configured]
+      required:
+        [
+          key,
+          displayName,
+          category,
+          configured,
+          editable,
+          configuredVia,
+          fields,
+          disabled,
+        ]
       properties:
         key: { type: string }
         displayName: { type: string }
         category: { $ref: "#/components/schemas/IntegrationCategory" }
         configured: { type: boolean }
         description: { type: ["string", "null"] }
+        editable:
+          type: boolean
+          description: Whether credentials for this integration can be entered from the UI.
+        configuredVia:
+          type: string
+          enum: [ui, environment, none]
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/IntegrationField" }
+        disabled:
+          type: boolean
+          description: For Gmail, whether the user has soft-disabled sending/polling.
+
+    IntegrationCredentialInput:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: object
+          additionalProperties: { type: string }
+          description: Field name -> value map, matching the integration's `fields`.
+
+    GmailDisabledInput:
+      type: object
+      required: [disabled]
+      properties:
+        disabled: { type: boolean }
 
     # ------------------------ Dashboard ------------------------
     DashboardSummary:

@@ -21,7 +21,7 @@ interface DiscoveryParams {
 
 const DISCOVERY_PROVIDERS: Array<{
   key: DiscoveryProviderKey;
-  isConfigured: () => boolean;
+  isConfigured: () => Promise<boolean>;
   run: (params: DiscoveryParams) => Promise<DiscoveredCompany[]>;
 }> = [
   { key: "apollo", isConfigured: isApolloConfigured, run: apolloDiscoverCompanies },
@@ -52,7 +52,7 @@ export async function runDiscovery(
   const providersSkipped: string[] = [];
 
   for (const provider of DISCOVERY_PROVIDERS) {
-    if (!provider.isConfigured()) {
+    if (!(await provider.isConfigured())) {
       providersSkipped.push(provider.key);
       continue;
     }
@@ -74,7 +74,7 @@ export type EmailFinderProviderKey = "hunter" | "snov";
 export async function findEmailForDomain(
   domain: string,
 ): Promise<(FoundEmail & { source: EmailFinderProviderKey }) | null> {
-  if (isHunterConfigured()) {
+  if (await isHunterConfigured()) {
     try {
       const result = await hunterFindEmail(domain);
       if (result) return { ...result, source: "hunter" };
@@ -82,7 +82,7 @@ export async function findEmailForDomain(
       logger.error({ err, domain }, "Hunter email lookup failed");
     }
   }
-  if (isSnovConfigured()) {
+  if (await isSnovConfigured()) {
     try {
       const result = await snovFindEmail(domain);
       if (result) return { ...result, source: "snov" };

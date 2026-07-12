@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 import { db, aiActivityTable, replyCategoryValues, type ReplyCategory } from "@workspace/db";
 import { logger } from "./logger";
+import { getCredentialValue } from "./credentials";
 
 type LlmProvider = "gemini" | "openai";
 type AiActivityKind =
@@ -11,30 +12,24 @@ type AiActivityKind =
   | "reply_draft"
   | "followup_generation";
 
-function getProvider(): LlmProvider | null {
-  if (process.env.GEMINI_API_KEY) return "gemini";
-  if (process.env.OPENAI_API_KEY) return "openai";
+async function resolveProvider(): Promise<{ provider: LlmProvider; apiKey: string } | null> {
+  const gemini = await getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY");
+  if (gemini) return { provider: "gemini", apiKey: gemini };
+  const openai = await getCredentialValue("openai", "apiKey", "OPENAI_API_KEY");
+  if (openai) return { provider: "openai", apiKey: openai };
   return null;
 }
 
-export function isLlmConfigured(): boolean {
-  return getProvider() !== null;
+export async function isLlmConfigured(): Promise<boolean> {
+  return (await resolveProvider()) !== null;
 }
 
-let geminiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  if (!geminiClient) {
-    geminiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
-  return geminiClient;
+function getGeminiClient(apiKey: string): GoogleGenAI {
+  return new GoogleGenAI({ apiKey });
 }
 
-let openaiClient: OpenAI | null = null;
-function getOpenAiClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openaiClient;
+function getOpenAiClient(apiKey: string): OpenAI {
+  return new OpenAI({ apiKey });
 }
 
 interface CallLlmOptions {
@@ -47,10 +42,11 @@ interface CallLlmOptions {
 }
 
 export async function callLlm(opts: CallLlmOptions): Promise<string> {
-  const provider = getProvider();
+  const resolved = await resolveProvider();
+  const provider = resolved?.provider ?? null;
   const fullPrompt = `[SYSTEM]\n${opts.systemPrompt}\n\n[USER]\n${opts.userPrompt}`;
 
-  if (!provider) {
+  if (!provider || !resolved) {
     await db.insert(aiActivityTable).values({
       kind: opts.kind,
       prompt: fullPrompt,
@@ -67,7 +63,7 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
 
   try {
     if (provider === "gemini") {
-      const ai = getGeminiClient();
+      const ai = getGeminiClient(resolved.apiKey);
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [{ text: opts.userPrompt }] }],
@@ -91,7 +87,7 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
       return text;
     }
 
-    const openai = getOpenAiClient();
+    const openai = getOpenAiClient(resolved.apiKey);
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
