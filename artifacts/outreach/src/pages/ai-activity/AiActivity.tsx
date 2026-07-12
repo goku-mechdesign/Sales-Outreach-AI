@@ -45,7 +45,7 @@ export default function AiActivity() {
       <div>
         <h1 className="text-2xl font-bold">AI Activity</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Every call made to Gemini or OpenAI on your behalf, with token usage and outcome.
+          Every call made to Gemini on your behalf, with token usage and outcome.
         </p>
       </div>
 

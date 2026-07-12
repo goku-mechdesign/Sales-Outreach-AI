@@ -23,10 +23,6 @@ export const prospectSourceValues = [
   "manual",
   "apollo",
   "hunter",
-  "snov",
-  "clearbit",
-  "crunchbase",
-  "opencorporates",
   "website",
 ] as const;
 

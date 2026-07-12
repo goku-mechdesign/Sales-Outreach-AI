@@ -1,10 +1,6 @@
 import { isGmailConfigured } from "./gmail";
 import { isApolloConfigured } from "./providers/apollo";
-import { isCrunchbaseConfigured } from "./providers/crunchbase";
-import { isOpenCorporatesConfigured } from "./providers/opencorporates";
 import { isHunterConfigured } from "./providers/hunter";
-import { isSnovConfigured } from "./providers/snov";
-import { isClearbitConfigured } from "./providers/clearbit";
 import {
   getCredentialValue,
   getStoredValues,
@@ -55,35 +51,17 @@ async function buildEntry(params: {
 }
 
 export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]> {
-  const [
-    geminiKey,
-    openaiKey,
-    gmailDisabledValues,
-    apolloConfigured,
-    crunchbaseConfigured,
-    opencorporatesConfigured,
-    hunterConfigured,
-    snovConfigured,
-    clearbitConfigured,
-    gmailConfigured,
-  ] = await Promise.all([
-    Promise.all([
-      hasStoredOverride("gemini"),
-      getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY"),
-    ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
-    Promise.all([
-      hasStoredOverride("openai"),
-      getCredentialValue("openai", "apiKey", "OPENAI_API_KEY"),
-    ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
-    getStoredValues("gmail"),
-    isApolloConfigured(),
-    isCrunchbaseConfigured(),
-    isOpenCorporatesConfigured(),
-    isHunterConfigured(),
-    isSnovConfigured(),
-    isClearbitConfigured(),
-    isGmailConfigured(),
-  ]);
+  const [geminiKey, gmailDisabledValues, apolloConfigured, hunterConfigured, gmailConfigured] =
+    await Promise.all([
+      Promise.all([
+        hasStoredOverride("gemini"),
+        getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY"),
+      ]).then(([hasOverride, key]) => ({ hasOverride, configured: Boolean(key) })),
+      getStoredValues("gmail"),
+      isApolloConfigured(),
+      isHunterConfigured(),
+      isGmailConfigured(),
+    ]);
 
   return Promise.all([
     buildEntry({
@@ -93,14 +71,6 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       configured: geminiKey.configured,
       editable: true,
       description: "Powers email generation, language detection, and reply classification.",
-    }),
-    buildEntry({
-      key: "openai",
-      displayName: "OpenAI",
-      category: "ai",
-      configured: openaiKey.configured,
-      editable: true,
-      description: "Fallback LLM used automatically if Gemini is not configured.",
     }),
     buildEntry({
       key: "gmail",
@@ -120,44 +90,12 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       description: "Finds prospect companies by industry, location, and keywords.",
     }),
     buildEntry({
-      key: "crunchbase",
-      displayName: "Crunchbase",
-      category: "prospect_discovery",
-      configured: crunchbaseConfigured,
-      editable: true,
-      description: "Finds prospect companies from Crunchbase's organization data.",
-    }),
-    buildEntry({
-      key: "opencorporates",
-      displayName: "OpenCorporates",
-      category: "prospect_discovery",
-      configured: opencorporatesConfigured,
-      editable: true,
-      description: "Finds registered companies from official business registries.",
-    }),
-    buildEntry({
       key: "hunter",
       displayName: "Hunter.io",
       category: "prospect_discovery",
       configured: hunterConfigured,
       editable: true,
       description: "Finds verified contact emails for a company's domain.",
-    }),
-    buildEntry({
-      key: "snov",
-      displayName: "Snov.io",
-      category: "prospect_discovery",
-      configured: snovConfigured,
-      editable: true,
-      description: "Finds verified contact emails for a company's domain.",
-    }),
-    buildEntry({
-      key: "clearbit",
-      displayName: "Clearbit",
-      category: "prospect_discovery",
-      configured: clearbitConfigured,
-      editable: true,
-      description: "Enriches company records with industry and firmographic data.",
     }),
   ]);
 }

@@ -1,15 +1,9 @@
 import { logger } from "../logger";
 import { apolloDiscoverCompanies, isApolloConfigured } from "./apollo";
-import { crunchbaseDiscoverCompanies, isCrunchbaseConfigured } from "./crunchbase";
-import {
-  opencorporatesDiscoverCompanies,
-  isOpenCorporatesConfigured,
-} from "./opencorporates";
 import { hunterFindEmail, isHunterConfigured, type FoundEmail } from "./hunter";
-import { snovFindEmail, isSnovConfigured } from "./snov";
 import type { DiscoveredCompany } from "./apollo";
 
-export type DiscoveryProviderKey = "apollo" | "crunchbase" | "opencorporates";
+export type DiscoveryProviderKey = "apollo";
 
 interface DiscoveryParams {
   industry: string;
@@ -25,16 +19,6 @@ const DISCOVERY_PROVIDERS: Array<{
   run: (params: DiscoveryParams) => Promise<DiscoveredCompany[]>;
 }> = [
   { key: "apollo", isConfigured: isApolloConfigured, run: apolloDiscoverCompanies },
-  {
-    key: "crunchbase",
-    isConfigured: isCrunchbaseConfigured,
-    run: crunchbaseDiscoverCompanies,
-  },
-  {
-    key: "opencorporates",
-    isConfigured: isOpenCorporatesConfigured,
-    run: opencorporatesDiscoverCompanies,
-  },
 ];
 
 export interface DiscoveryOutcome {
@@ -69,7 +53,7 @@ export async function runDiscovery(
   return { companies, providersUsed, providersSkipped };
 }
 
-export type EmailFinderProviderKey = "hunter" | "snov";
+export type EmailFinderProviderKey = "hunter";
 
 export async function findEmailForDomain(
   domain: string,
@@ -80,14 +64,6 @@ export async function findEmailForDomain(
       if (result) return { ...result, source: "hunter" };
     } catch (err) {
       logger.error({ err, domain }, "Hunter email lookup failed");
-    }
-  }
-  if (await isSnovConfigured()) {
-    try {
-      const result = await snovFindEmail(domain);
-      if (result) return { ...result, source: "snov" };
-    } catch (err) {
-      logger.error({ err, domain }, "Snov email lookup failed");
     }
   }
   return null;

@@ -464,7 +464,7 @@ function DiscoverDialog({
         <DialogTitle>AI prospect discovery</DialogTitle>
       </DialogHeader>
       <p className="text-sm text-muted-foreground">
-        Runs across your configured discovery providers (Apollo, Crunchbase, OpenCorporates) and skips
+        Runs across your configured discovery providers (Apollo) and skips
         any that aren't connected yet.
       </p>
       <div className="space-y-3">

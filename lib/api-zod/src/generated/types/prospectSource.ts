@@ -13,9 +13,5 @@ export const ProspectSource = {
   manual: 'manual',
   apollo: 'apollo',
   hunter: 'hunter',
-  snov: 'snov',
-  clearbit: 'clearbit',
-  crunchbase: 'crunchbase',
-  opencorporates: 'opencorporates',
   website: 'website',
 } as const;
