@@ -67,6 +67,30 @@ async function testNvidia(): Promise<IntegrationTestResult> {
   }
 }
 
+async function testOpenRouter(): Promise<IntegrationTestResult> {
+  const apiKey = await getCredentialValue("openrouter", "apiKey", "OPENROUTER_API_KEY");
+  if (!apiKey) return { success: false, message: "No OpenRouter API key configured." };
+  const model = await getCredentialValue("openrouter", "model");
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model || "meta-llama/llama-3.3-70b-instruct",
+        messages: [{ role: "user", content: "Reply with only the word OK." }],
+        max_tokens: 16,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`OpenRouter API error (${res.status}): ${text || res.statusText}`);
+    }
+    return { success: true, message: "Your OpenRouter API key is working." };
+  } catch (err) {
+    return { success: false, message: describeError(err) };
+  }
+}
+
 async function testApollo(): Promise<IntegrationTestResult> {
   const apiKey = await getCredentialValue("apollo", "apiKey", "APOLLO_API_KEY");
   if (!apiKey) return { success: false, message: "No Apollo.io API key configured." };
@@ -141,6 +165,8 @@ export async function testIntegration(key: string): Promise<IntegrationTestResul
         return await testGemini();
       case "nvidia":
         return await testNvidia();
+      case "openrouter":
+        return await testOpenRouter();
       case "apollo":
         return await testApollo();
       case "hunter":

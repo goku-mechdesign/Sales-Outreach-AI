@@ -26,7 +26,7 @@ import { CheckCircle2, CircleDashed, FlaskConical, Pencil, X } from "lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import type { IntegrationCategory, IntegrationStatus } from "@workspace/api-client-react";
 
-const TESTABLE_KEYS = new Set(["gemini", "nvidia", "apollo", "hunter", "gmail"]);
+const TESTABLE_KEYS = new Set(["gemini", "nvidia", "openrouter", "apollo", "hunter", "gmail"]);
 
 function TestIntegrationButton({ integration }: { integration: IntegrationStatus }) {
   const { toast } = useToast();

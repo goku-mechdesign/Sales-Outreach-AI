@@ -23,6 +23,10 @@ export const PROVIDER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
     { name: "apiKey", label: "API key", envVar: "NVIDIA_API_KEY", secret: true },
     { name: "model", label: "Model (optional)", envVar: "", secret: false },
   ],
+  openrouter: [
+    { name: "apiKey", label: "API key", envVar: "OPENROUTER_API_KEY", secret: true },
+    { name: "model", label: "Model (optional)", envVar: "", secret: false },
+  ],
   apollo: [{ name: "apiKey", label: "API key", envVar: "APOLLO_API_KEY", secret: true }],
   hunter: [{ name: "apiKey", label: "API key", envVar: "HUNTER_API_KEY", secret: true }],
 };

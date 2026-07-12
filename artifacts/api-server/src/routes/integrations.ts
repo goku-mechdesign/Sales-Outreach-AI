@@ -16,7 +16,7 @@ import {
   clearCredential,
 } from "../lib/credentials";
 
-const TESTABLE_KEYS = new Set(["gemini", "nvidia", "apollo", "hunter", "gmail"]);
+const TESTABLE_KEYS = new Set(["gemini", "nvidia", "openrouter", "apollo", "hunter", "gmail"]);
 
 const router: IRouter = Router();
 

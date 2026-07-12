@@ -5,16 +5,20 @@ import { logger } from "./logger";
 import { getCredentialValue } from "./credentials";
 
 // "gemini" = the user's own Gemini API key (from Integrations or GEMINI_API_KEY
-// env secret). "nvidia" = the user's own NVIDIA NIM API key (OpenAI-compatible
-// endpoint), an alternative BYO provider. "gemini_trial" = Replit's managed
-// AI integration -- no key required, billed to Replit credits. Precedence:
-// an explicitly configured NVIDIA key wins (it was added on purpose), then a
-// configured Gemini key, then the zero-config trial fallback so the app
-// works out of the box.
-type LlmProvider = "gemini" | "nvidia" | "gemini_trial";
+// env secret). "nvidia" / "openrouter" = the user's own API key for those
+// OpenAI-compatible chat-completions APIs, alternative BYO providers.
+// "gemini_trial" = Replit's managed AI integration -- no key required,
+// billed to Replit credits. Precedence: an explicitly configured NVIDIA key
+// wins first, then OpenRouter, then a configured Gemini key, then the
+// zero-config trial fallback -- explicitly added keys were added on purpose
+// and should take priority over the automatic fallback.
+type LlmProvider = "gemini" | "nvidia" | "openrouter" | "gemini_trial";
 
 const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 const NVIDIA_DEFAULT_MODEL = "meta/llama-3.3-70b-instruct";
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+const OPENROUTER_DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 type AiActivityKind =
   | "language_detection"
@@ -31,31 +35,39 @@ async function resolveProvider(): Promise<
     const model = await getCredentialValue("nvidia", "model");
     return { provider: "nvidia", apiKey: nvidia, model: model || undefined };
   }
+  const openrouter = await getCredentialValue("openrouter", "apiKey", "OPENROUTER_API_KEY");
+  if (openrouter) {
+    const model = await getCredentialValue("openrouter", "model");
+    return { provider: "openrouter", apiKey: openrouter, model: model || undefined };
+  }
   const gemini = await getCredentialValue("gemini", "apiKey", "GEMINI_API_KEY");
   if (gemini) return { provider: "gemini", apiKey: gemini };
   return { provider: "gemini_trial" };
 }
 
-interface NvidiaChatCompletion {
+interface OpenAiCompatibleChatCompletion {
   choices?: { message?: { content?: string } }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
-async function callNvidia(params: {
+/** Shared caller for OpenAI-compatible chat-completions APIs (NVIDIA NIM, OpenRouter). */
+async function callOpenAiCompatible(params: {
+  providerLabel: string;
+  baseUrl: string;
   apiKey: string;
-  model?: string;
+  model: string;
   systemPrompt: string;
   userPrompt: string;
   json?: boolean;
 }): Promise<{ text: string; promptTokens: number | null; completionTokens: number | null }> {
-  const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+  const response = await fetch(`${params.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${params.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: params.model || NVIDIA_DEFAULT_MODEL,
+      model: params.model,
       messages: [
         { role: "system", content: params.systemPrompt },
         { role: "user", content: params.userPrompt },
@@ -67,16 +79,54 @@ async function callNvidia(params: {
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`NVIDIA API error (${response.status}): ${body || response.statusText}`);
+    throw new Error(
+      `${params.providerLabel} API error (${response.status}): ${body || response.statusText}`,
+    );
   }
 
-  const data = (await response.json()) as NvidiaChatCompletion;
+  const data = (await response.json()) as OpenAiCompatibleChatCompletion;
   const text = data.choices?.[0]?.message?.content ?? "";
   return {
     text,
     promptTokens: data.usage?.prompt_tokens ?? null,
     completionTokens: data.usage?.completion_tokens ?? null,
   };
+}
+
+function callNvidia(params: {
+  apiKey: string;
+  model?: string;
+  systemPrompt: string;
+  userPrompt: string;
+  json?: boolean;
+}) {
+  return callOpenAiCompatible({
+    providerLabel: "NVIDIA",
+    baseUrl: NVIDIA_BASE_URL,
+    apiKey: params.apiKey,
+    model: params.model || NVIDIA_DEFAULT_MODEL,
+    systemPrompt: params.systemPrompt,
+    userPrompt: params.userPrompt,
+    json: params.json,
+  });
+}
+
+function callOpenRouter(params: {
+  apiKey: string;
+  model?: string;
+  systemPrompt: string;
+  userPrompt: string;
+  json?: boolean;
+}) {
+  return callOpenAiCompatible({
+    providerLabel: "OpenRouter",
+    baseUrl: OPENROUTER_BASE_URL,
+    apiKey: params.apiKey,
+    model: params.model || OPENROUTER_DEFAULT_MODEL,
+    systemPrompt: params.systemPrompt,
+    userPrompt: params.userPrompt,
+    json: params.json,
+  });
 }
 
 export async function isLlmConfigured(): Promise<boolean> {
@@ -112,12 +162,12 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
       kind: opts.kind,
       prompt: fullPrompt,
       status: "error",
-      errorMessage: "No LLM provider configured. Add a Gemini or NVIDIA API key.",
+      errorMessage: "No LLM provider configured. Add a Gemini, NVIDIA, or OpenRouter API key.",
       relatedProspectId: opts.relatedProspectId ?? null,
       relatedCampaignId: opts.relatedCampaignId ?? null,
     });
     throw new Error(
-      "No LLM provider configured. Add a Gemini or NVIDIA API key in Settings > Integrations.",
+      "No LLM provider configured. Add a Gemini, NVIDIA, or OpenRouter API key in Settings > Integrations.",
     );
   }
 
@@ -126,8 +176,9 @@ export async function callLlm(opts: CallLlmOptions): Promise<string> {
     let promptTokens: number | null;
     let completionTokens: number | null;
 
-    if (provider === "nvidia") {
-      const result = await callNvidia({
+    if (provider === "nvidia" || provider === "openrouter") {
+      const caller = provider === "nvidia" ? callNvidia : callOpenRouter;
+      const result = await caller({
         apiKey: resolved.apiKey!,
         model: resolved.model,
         systemPrompt: opts.systemPrompt,
