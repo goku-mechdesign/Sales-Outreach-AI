@@ -19,6 +19,10 @@ export interface CredentialField {
 // separately (connector-based) and is not part of this map.
 export const PROVIDER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
   gemini: [{ name: "apiKey", label: "API key", envVar: "GEMINI_API_KEY", secret: true }],
+  nvidia: [
+    { name: "apiKey", label: "API key", envVar: "NVIDIA_API_KEY", secret: true },
+    { name: "model", label: "Model (optional)", envVar: "", secret: false },
+  ],
   apollo: [{ name: "apiKey", label: "API key", envVar: "APOLLO_API_KEY", secret: true }],
   hunter: [{ name: "apiKey", label: "API key", envVar: "HUNTER_API_KEY", secret: true }],
 };
