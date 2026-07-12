@@ -21,7 +21,7 @@ export interface IntegrationStatusEntry {
   configured: boolean;
   description: string;
   editable: boolean;
-  configuredVia: "ui" | "environment" | "none";
+  configuredVia: "ui" | "environment" | "trial" | "none";
   fields: IntegrationFieldEntry[];
   disabled: boolean;
 }
@@ -34,6 +34,7 @@ async function buildEntry(params: {
   configured: boolean;
   editable: boolean;
   disabled?: boolean;
+  configuredVia?: IntegrationStatusEntry["configuredVia"];
 }): Promise<IntegrationStatusEntry> {
   const fields = PROVIDER_CREDENTIAL_FIELDS[params.key] ?? [];
   const hasOverride = params.editable ? await hasStoredOverride(params.key) : false;
@@ -44,7 +45,8 @@ async function buildEntry(params: {
     configured: params.configured,
     description: params.description,
     editable: params.editable,
-    configuredVia: !params.configured ? "none" : hasOverride ? "ui" : "environment",
+    configuredVia:
+      params.configuredVia ?? (!params.configured ? "none" : hasOverride ? "ui" : "environment"),
     fields: fields.map((f) => ({ name: f.name, label: f.label, secret: f.secret ?? true })),
     disabled: params.disabled ?? false,
   };
@@ -68,9 +70,12 @@ export async function getIntegrationStatuses(): Promise<IntegrationStatusEntry[]
       key: "gemini",
       displayName: "Gemini",
       category: "ai",
-      configured: geminiKey.configured,
+      configured: true,
       editable: true,
-      description: "Powers email generation, language detection, and reply classification.",
+      configuredVia: geminiKey.configured ? undefined : "trial",
+      description: geminiKey.configured
+        ? "Powers email generation, language detection, and reply classification."
+        : "Powers email generation, language detection, and reply classification. Currently running on Replit's free AI trial (billed to your Replit credits) — add your own Gemini key above to use your own quota.",
     }),
     buildEntry({
       key: "gmail",

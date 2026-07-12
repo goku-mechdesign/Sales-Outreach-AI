@@ -123,7 +123,12 @@ function IntegrationCard({ integration }: { integration: IntegrationStatus }) {
     <Card data-testid={`card-integration-${integration.key}`}>
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <CardTitle className="text-base">{integration.displayName}</CardTitle>
-        {integration.configured && !integration.disabled ? (
+        {integration.configuredVia === "trial" && !integration.disabled ? (
+          <Badge variant="secondary" className="gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Trial
+          </Badge>
+        ) : integration.configured && !integration.disabled ? (
           <Badge className="gap-1 bg-primary text-primary-foreground">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Connected
@@ -173,6 +178,12 @@ function IntegrationCard({ integration }: { integration: IntegrationStatus }) {
         )}
         {integration.configuredVia === "environment" && (
           <p className="text-xs text-muted-foreground">Configured via environment secret.</p>
+        )}
+        {integration.configuredVia === "trial" && (
+          <p className="text-xs text-muted-foreground">
+            Running on Replit's free AI trial, billed to your Replit credits. Add your own key
+            above to use your own quota instead.
+          </p>
         )}
 
         {integration.key === "gmail" && (

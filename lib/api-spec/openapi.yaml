@@ -1167,7 +1167,7 @@ components:
           description: Whether credentials for this integration can be entered from the UI.
         configuredVia:
           type: string
-          enum: [ui, environment, none]
+          enum: [ui, environment, trial, none]
         fields:
           type: array
           items: { $ref: "#/components/schemas/IntegrationField" }

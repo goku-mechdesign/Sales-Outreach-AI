@@ -12,5 +12,6 @@ export type IntegrationStatusConfiguredVia = typeof IntegrationStatusConfiguredV
 export const IntegrationStatusConfiguredVia = {
   ui: 'ui',
   environment: 'environment',
+  trial: 'trial',
   none: 'none',
 } as const;
