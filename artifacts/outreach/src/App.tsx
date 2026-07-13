@@ -12,6 +12,7 @@ import Layout from "@/components/layout/Layout";
 import Home from "@/pages/Home";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import Prospects from "@/pages/prospects/Prospects";
+import Pipeline from "@/pages/pipeline/Pipeline";
 import Campaigns from "@/pages/campaigns/Campaigns";
 import CampaignDetail from "@/pages/campaigns/CampaignDetail";
 import Inbox from "@/pages/inbox/Inbox";
@@ -137,6 +138,7 @@ function ProtectedRoutes() {
       <Switch>
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/prospects" component={Prospects} />
+        <Route path="/pipeline" component={Pipeline} />
         <Route path="/campaigns" component={Campaigns} />
         <Route path="/campaigns/:id" component={CampaignDetail} />
         <Route path="/inbox" component={Inbox} />
@@ -158,6 +160,7 @@ function AppRouter() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/dashboard" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />
       <Route path="/prospects" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />
+      <Route path="/pipeline" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />
       <Route path="/campaigns" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />
       <Route path="/campaigns/:id" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />
       <Route path="/inbox" component={() => <><Show when="signed-in"><ProtectedRoutes /></Show><Show when="signed-out"><Redirect to="/" /></Show></>} />

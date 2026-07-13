@@ -46,40 +46,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-const statusOptions: ProspectStatus[] = [
-  "new",
-  "approved",
-  "rejected",
-  "contacted",
-  "replied",
-  "hot",
-  "not_interested",
-  "bounced",
-];
-
-const statusVariant: Record<ProspectStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  new: "outline",
-  approved: "secondary",
-  rejected: "destructive",
-  contacted: "secondary",
-  replied: "default",
-  hot: "default",
-  not_interested: "destructive",
-  bounced: "destructive",
-};
-
-function leadScoreTier(score: number): "High" | "Medium" | "Low" {
-  if (score >= 70) return "High";
-  if (score >= 40) return "Medium";
-  return "Low";
-}
-
-const leadScoreBadgeClass: Record<"High" | "Medium" | "Low", string> = {
-  High: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-  Medium: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  Low: "bg-muted text-muted-foreground",
-};
+import {
+  ProspectDetailDialog,
+  statusOptions,
+  statusVariant,
+  leadScoreTier,
+  leadScoreBadgeClass,
+} from "@/components/prospects/ProspectDetailDialog";
 
 export default function Prospects() {
   const { toast } = useToast();
@@ -90,6 +63,7 @@ export default function Prospects() {
   const [addOpen, setAddOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [sortByScore, setSortByScore] = useState(false);
+  const [detailId, setDetailId] = useState<number | null>(null);
 
   const { data, isLoading } = useListProspects({
     search: search || undefined,
@@ -305,7 +279,14 @@ export default function Prospects() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{p.companyName}</div>
+                      <button
+                        type="button"
+                        className="font-medium hover:underline text-left"
+                        onClick={() => setDetailId(p.id)}
+                        data-testid={`button-open-detail-${p.id}`}
+                      >
+                        {p.companyName}
+                      </button>
                       <div className="text-xs text-muted-foreground">
                         {p.industry || "—"}
                         {p.website ? ` · ${p.website.replace(/^https?:\/\//, "")}` : ""}
@@ -423,6 +404,17 @@ export default function Prospects() {
           )}
         </CardContent>
       </Card>
+
+      <ProspectDetailDialog
+        prospect={items.find((p) => p.id === detailId) ?? null}
+        open={detailId !== null}
+        onOpenChange={(open) => !open && setDetailId(null)}
+        onUpdate={(id, data) => updateProspect.mutate({ id, data })}
+        onDelete={(id) => {
+          deleteProspect.mutate({ id });
+          setDetailId(null);
+        }}
+      />
     </div>
   );
 }
