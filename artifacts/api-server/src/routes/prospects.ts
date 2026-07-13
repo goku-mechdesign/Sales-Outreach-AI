@@ -17,8 +17,8 @@ import {
   UpdateProspectResponse,
   DeleteProspectParams,
 } from "@workspace/api-zod";
-import { runDiscovery, findEmailForDomain, extractDomain } from "../lib/providers";
 import { guessLanguageFromCountry } from "../lib/languageGuess";
+import { discoverAndCreateProspects } from "../lib/discoveryFlow";
 
 const router: IRouter = Router();
 
@@ -73,66 +73,9 @@ router.post("/prospects/discover", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { count: requestedCount, ...params } = parsed.data;
 
-  const { companies, providersUsed, providersSkipped } = await runDiscovery({
-    ...params,
-    count: requestedCount,
-  });
-
-  const created = [];
-  let duplicatesSkipped = 0;
-
-  for (const company of companies.slice(0, requestedCount)) {
-    const [existing] = await db
-      .select()
-      .from(prospectsTable)
-      .where(ilike(prospectsTable.companyName, company.companyName));
-    if (existing) {
-      duplicatesSkipped += 1;
-      continue;
-    }
-
-    let email: string | null = null;
-    let contactName: string | null = null;
-    let confidenceScore = 0.4;
-    const domain = extractDomain(company.website);
-    if (domain) {
-      const found = await findEmailForDomain(domain);
-      if (found) {
-        email = found.email;
-        contactName = found.contactName;
-        confidenceScore = found.confidence;
-      }
-    }
-
-    const [row] = await db
-      .insert(prospectsTable)
-      .values({
-        companyName: company.companyName,
-        website: company.website,
-        industry: company.industry,
-        country: company.country,
-        city: company.city,
-        linkedinUrl: company.linkedinUrl,
-        source: company.source,
-        email,
-        contactName,
-        confidenceScore,
-        detectedLanguage: guessLanguageFromCountry(company.country, company.city),
-      })
-      .returning();
-    created.push(row!);
-  }
-
-  res.json(
-    DiscoverProspectsResponse.parse({
-      created,
-      duplicatesSkipped,
-      providersUsed,
-      providersSkipped,
-    }),
-  );
+  const result = await discoverAndCreateProspects(parsed.data);
+  res.json(DiscoverProspectsResponse.parse(result));
 });
 
 router.post("/prospects/bulk-status", async (req, res): Promise<void> => {

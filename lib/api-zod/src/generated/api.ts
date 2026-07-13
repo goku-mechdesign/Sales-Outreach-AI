@@ -265,6 +265,7 @@ export const ListCampaignsResponseItem = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -309,6 +310,7 @@ export const CreateCampaignResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -351,6 +353,7 @@ export const GetCampaignResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -407,6 +410,7 @@ export const UpdateCampaignResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -459,6 +463,7 @@ export const GenerateCampaignEmailResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -518,6 +523,7 @@ export const SendCampaignResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -543,6 +549,49 @@ export const SendCampaignResponse = zod.object({
 
 
 /**
+ * @summary One-time approval required before the agent can autonomously send this campaign's template
+ */
+export const ApproveCampaignTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApproveCampaignTemplateResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "goal": zod.string(),
+  "tone": zod.string(),
+  "productDescription": zod.string(),
+  "targetAudience": zod.string(),
+  "cta": zod.string(),
+  "subject": zod.string().nullish(),
+  "body": zod.string().nullish(),
+  "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
+  "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "sentAt": zod.coerce.date().nullish(),
+  "prospectCount": zod.number(),
+  "sentCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "prospects": zod.array(zod.object({
+  "id": zod.number(),
+  "prospectId": zod.number(),
+  "companyName": zod.string(),
+  "contactEmail": zod.string().nullish(),
+  "status": zod.enum(['pending', 'sent', 'replied', 'bounced', 'stopped']),
+  "followupStage": zod.number(),
+  "lastEmailAt": zod.coerce.date().nullish(),
+  "nextFollowupAt": zod.coerce.date().nullish(),
+  "gmailThreadId": zod.string().nullish(),
+  "stoppedReason": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+
+
+/**
  * @summary Schedule campaign for future sending
  */
 export const ScheduleCampaignParams = zod.object({
@@ -565,6 +614,7 @@ export const ScheduleCampaignResponse = zod.object({
   "body": zod.string().nullish(),
   "status": zod.enum(['draft', 'scheduled', 'sending', 'sent', 'completed']),
   "followupCount": zod.number(),
+  "templateApproved": zod.boolean(),
   "scheduledAt": zod.coerce.date().nullish(),
   "sentAt": zod.coerce.date().nullish(),
   "prospectCount": zod.number(),
@@ -811,6 +861,17 @@ export const GetSettingsResponse = zod.object({
   "autoReplyHoldHotLeads": zod.boolean().optional(),
   "notifyOnAutoReply": zod.boolean().optional(),
   "notificationEmail": zod.string().nullish(),
+  "autoDiscoveryEnabled": zod.boolean().optional(),
+  "autoDiscoveryCadence": zod.enum(['daily', 'weekly', 'manual']).optional(),
+  "autoDiscoveryTargetCount": zod.number().optional(),
+  "autoDiscoveryIndustry": zod.string().nullish(),
+  "autoDiscoveryCountry": zod.string().nullish(),
+  "autoDiscoveryCity": zod.string().nullish(),
+  "autoDiscoveryKeywords": zod.string().nullish(),
+  "autoDiscoveryCompanySize": zod.string().nullish(),
+  "lastAutoDiscoveryAt": zod.coerce.date().nullish(),
+  "autoEnrollCampaignId": zod.number().nullish(),
+  "sendPacingSeconds": zod.number().optional(),
   "updatedAt": zod.coerce.date().optional()
 })
 
@@ -820,6 +881,11 @@ export const GetSettingsResponse = zod.object({
  */
 
 export const updateSettingsBodyMaxEmailsPerDayMax = 500;
+
+export const updateSettingsBodyAutoDiscoveryTargetCountMax = 100;
+
+export const updateSettingsBodySendPacingSecondsMin = 0;
+export const updateSettingsBodySendPacingSecondsMax = 600;
 
 
 
@@ -838,7 +904,17 @@ export const UpdateSettingsBody = zod.object({
   "autoReplyCategories": zod.array(zod.enum(['interested', 'need_more_info', 'pricing', 'meeting_request', 'not_interested', 'wrong_contact', 'out_of_office', 'spam', 'other'])).optional(),
   "autoReplyHoldHotLeads": zod.boolean().optional(),
   "notifyOnAutoReply": zod.boolean().optional(),
-  "notificationEmail": zod.string().optional()
+  "notificationEmail": zod.string().optional(),
+  "autoDiscoveryEnabled": zod.boolean().optional(),
+  "autoDiscoveryCadence": zod.enum(['daily', 'weekly', 'manual']).optional(),
+  "autoDiscoveryTargetCount": zod.number().min(1).max(updateSettingsBodyAutoDiscoveryTargetCountMax).optional(),
+  "autoDiscoveryIndustry": zod.string().optional(),
+  "autoDiscoveryCountry": zod.string().optional(),
+  "autoDiscoveryCity": zod.string().optional(),
+  "autoDiscoveryKeywords": zod.string().optional(),
+  "autoDiscoveryCompanySize": zod.string().optional(),
+  "autoEnrollCampaignId": zod.number().nullish(),
+  "sendPacingSeconds": zod.number().min(updateSettingsBodySendPacingSecondsMin).max(updateSettingsBodySendPacingSecondsMax).optional()
 })
 
 export const UpdateSettingsResponse = zod.object({
@@ -858,6 +934,17 @@ export const UpdateSettingsResponse = zod.object({
   "autoReplyHoldHotLeads": zod.boolean().optional(),
   "notifyOnAutoReply": zod.boolean().optional(),
   "notificationEmail": zod.string().nullish(),
+  "autoDiscoveryEnabled": zod.boolean().optional(),
+  "autoDiscoveryCadence": zod.enum(['daily', 'weekly', 'manual']).optional(),
+  "autoDiscoveryTargetCount": zod.number().optional(),
+  "autoDiscoveryIndustry": zod.string().nullish(),
+  "autoDiscoveryCountry": zod.string().nullish(),
+  "autoDiscoveryCity": zod.string().nullish(),
+  "autoDiscoveryKeywords": zod.string().nullish(),
+  "autoDiscoveryCompanySize": zod.string().nullish(),
+  "lastAutoDiscoveryAt": zod.coerce.date().nullish(),
+  "autoEnrollCampaignId": zod.number().nullish(),
+  "sendPacingSeconds": zod.number().optional(),
   "updatedAt": zod.coerce.date().optional()
 })
 
