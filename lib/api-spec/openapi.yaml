@@ -976,7 +976,7 @@ components:
 
     EmailMessageStatus:
       type: string
-      enum: [sent, draft_pending_approval, approved]
+      enum: [sent, draft_pending_approval, approved, auto_sent]
 
     EmailMessage:
       type: object
@@ -1048,11 +1048,12 @@ components:
 
     PollResult:
       type: object
-      required: [newMessages, newlyClassified, hotLeads]
+      required: [newMessages, newlyClassified, hotLeads, autoReplied]
       properties:
         newMessages: { type: integer }
         newlyClassified: { type: integer }
         hotLeads: { type: integer }
+        autoReplied: { type: integer }
 
     # ------------------------ AI Activity ------------------------
     AiActivityKind:
@@ -1133,6 +1134,8 @@ components:
         autoReplyCategories:
           type: array
           items: { $ref: "#/components/schemas/ReplyCategory" }
+        autoReplyHoldHotLeads: { type: boolean }
+        notifyOnAutoReply: { type: boolean }
         notificationEmail: { type: ["string", "null"] }
         updatedAt: { type: string, format: date-time }
 
@@ -1155,6 +1158,8 @@ components:
         autoReplyCategories:
           type: array
           items: { $ref: "#/components/schemas/ReplyCategory" }
+        autoReplyHoldHotLeads: { type: boolean }
+        notifyOnAutoReply: { type: boolean }
         notificationEmail: { type: string }
 
     # ------------------------ Integrations ------------------------

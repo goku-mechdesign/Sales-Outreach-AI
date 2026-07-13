@@ -26,6 +26,8 @@ export interface Settings {
   followupDays: number[];
   autoReplyEnabled: boolean;
   autoReplyCategories: ReplyCategory[];
+  autoReplyHoldHotLeads?: boolean;
+  notifyOnAutoReply?: boolean;
   /** @nullable */
   notificationEmail?: string | null;
   updatedAt?: Date;

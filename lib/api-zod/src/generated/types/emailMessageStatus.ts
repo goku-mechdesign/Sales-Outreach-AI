@@ -13,4 +13,5 @@ export const EmailMessageStatus = {
   sent: 'sent',
   draft_pending_approval: 'draft_pending_approval',
   approved: 'approved',
+  auto_sent: 'auto_sent',
 } as const;
