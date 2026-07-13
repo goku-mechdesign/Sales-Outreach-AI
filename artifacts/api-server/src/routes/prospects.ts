@@ -61,7 +61,7 @@ router.post("/prospects", async (req, res): Promise<void> => {
     .values({
       ...parsed.data,
       source: "manual",
-      detectedLanguage: guessLanguageFromCountry(parsed.data.country),
+      detectedLanguage: guessLanguageFromCountry(parsed.data.country, parsed.data.city),
     })
     .returning();
   res.status(201).json(CreateProspectResponse.parse(prospect));
@@ -119,7 +119,7 @@ router.post("/prospects/discover", async (req, res): Promise<void> => {
         email,
         contactName,
         confidenceScore,
-        detectedLanguage: guessLanguageFromCountry(company.country),
+        detectedLanguage: guessLanguageFromCountry(company.country, company.city),
       })
       .returning();
     created.push(row!);
