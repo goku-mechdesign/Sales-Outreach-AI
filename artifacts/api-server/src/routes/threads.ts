@@ -182,6 +182,7 @@ router.post("/threads/:id/generate-draft", async (req, res): Promise<void> => {
     messages,
     companyContext: settings,
     language: prospect?.detectedLanguage,
+    country: prospect?.country,
     threadId: thread.id,
   });
 

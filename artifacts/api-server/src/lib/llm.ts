@@ -3,6 +3,7 @@ import { ai as replitTrialGemini } from "@workspace/integrations-gemini-ai";
 import { db, aiActivityTable, replyCategoryValues, type ReplyCategory } from "@workspace/db";
 import { logger } from "./logger";
 import { getCredentialValue } from "./credentials";
+import { getRegionalStyle } from "./regionalStyle";
 
 // "gemini" = the user's own Gemini API key (from Integrations or GEMINI_API_KEY
 // env secret). "nvidia" / "openrouter" = the user's own API key for those
@@ -474,6 +475,7 @@ export async function generateFollowupEmail(params: {
   previousBody: string;
   followupStage: number;
   language?: string | null;
+  country?: string | null;
   companyContext: CompanyContext;
   campaignId?: number;
   prospectId?: number;
@@ -481,6 +483,7 @@ export async function generateFollowupEmail(params: {
   const systemPrompt =
     'You write brief, polite follow-up emails to a cold outreach email that received no reply. Keep it short (3-5 sentences), add a small new angle of value, and restate the call to action. Return ONLY valid JSON of the shape {"subject": string, "body": string}.';
 
+  const regionalStyle = getRegionalStyle(params.country);
   const userPrompt = `
 Sender company: ${params.companyContext.companyName}
 Signature: ${params.companyContext.emailSignature ?? params.companyContext.companyName}
@@ -488,6 +491,7 @@ Signature: ${params.companyContext.emailSignature ?? params.companyContext.compa
 Recipient company: ${params.companyName}
 Recipient contact name: ${params.contactName ?? "Unknown"}
 ${params.language && params.language !== "en" ? `Write the email in language code "${params.language}".` : "Write the email in English."}
+${regionalStyle.isDefault ? "" : `Regional tone/formality guidance: ${regionalStyle.style}`}
 
 This is follow-up #${params.followupStage} to this original email (no reply received yet):
 Subject: ${params.previousSubject}
@@ -520,18 +524,29 @@ export async function translateEmailTemplate(params: {
   subject: string;
   body: string;
   targetLanguage?: string | null;
+  country?: string | null;
   campaignId?: number;
 }): Promise<GeneratedEmail> {
-  const target = params.targetLanguage?.trim().toLowerCase();
-  if (!target || target === "en") {
+  const target = params.targetLanguage?.trim().toLowerCase() || "en";
+  const needsTranslation = target !== "en";
+  const regionalStyle = getRegionalStyle(params.country);
+
+  if (!needsTranslation && regionalStyle.isDefault) {
     return { subject: params.subject, body: params.body };
   }
 
-  const systemPrompt =
-    'You translate B2B cold outreach email templates into another language. Preserve tone, meaning, and formatting exactly. The literal merge tokens {{contactName}} and {{companyName}} MUST be copied through completely unchanged, character-for-character, wherever they appear -- never translate, alter, or omit them. Return ONLY valid JSON of the shape {"subject": string, "body": string}.';
+  const systemPrompt = needsTranslation
+    ? 'You translate and localize B2B cold outreach email templates for a target market. Preserve meaning and structure, but adapt tone and formality to the target region\'s business norms when instructed. The literal merge tokens {{contactName}} and {{companyName}} MUST be copied through completely unchanged, character-for-character, wherever they appear -- never translate, alter, or omit them. Return ONLY valid JSON of the shape {"subject": string, "body": string}.'
+    : 'You adjust the tone and formality of a B2B cold outreach email template to match a target region\'s business norms, WITHOUT changing its language. The literal merge tokens {{contactName}} and {{companyName}} MUST be copied through completely unchanged, character-for-character, wherever they appear -- never translate, alter, or omit them. Return ONLY valid JSON of the shape {"subject": string, "body": string}.';
 
   const userPrompt = `
-Translate the following email template into the language with ISO 639-1 code "${target}". Keep the same tone, structure, and line breaks, and do not add or remove content. Do not translate or modify the tokens {{contactName}} or {{companyName}} -- copy them exactly as written.
+${
+  needsTranslation
+    ? `Translate the following email template into the language with ISO 639-1 code "${target}".`
+    : "Keep the following email template in English."
+}
+Keep the same overall structure and line breaks, and do not add or remove content beyond what the style guidance below calls for. Do not translate or modify the tokens {{contactName}} or {{companyName}} -- copy them exactly as written.
+${regionalStyle.isDefault ? "" : `\nRegional tone/formality guidance for this market: ${regionalStyle.style}`}
 
 Subject: ${params.subject}
 
@@ -592,6 +607,7 @@ export async function generateReplyDraft(params: {
   messages: { direction: string; body: string }[];
   companyContext: CompanyContext;
   language?: string | null;
+  country?: string | null;
   threadId?: number;
 }): Promise<string> {
   const systemPrompt =
@@ -601,6 +617,7 @@ export async function generateReplyDraft(params: {
     .map((m) => `${m.direction === "incoming" ? "Prospect" : "Us"}: ${m.body}`)
     .join("\n\n");
 
+  const regionalStyle = getRegionalStyle(params.country);
   const userPrompt = `
 Thread subject: ${params.threadSubject}
 
@@ -611,6 +628,7 @@ Draft the next reply from us.
 Sender company: ${params.companyContext.companyName}
 Signature: ${params.companyContext.emailSignature ?? params.companyContext.companyName}
 ${params.language && params.language !== "en" ? `Write the reply in language code "${params.language}" (the same language the prospect is writing in).` : "Write the reply in English."}
+${regionalStyle.isDefault ? "" : `Regional tone/formality guidance: ${regionalStyle.style}`}
 `.trim();
 
   const text = await callLlm({

@@ -311,24 +311,29 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
   let sent = 0;
   let failed = 0;
 
-  // Cache the campaign template translated into each prospect's detected
-  // language so we only call the LLM once per unique language, not once per
-  // prospect.
-  const translatedTemplates = new Map<string, GeneratedEmail>();
-  async function templateForLanguage(language: string | null | undefined): Promise<GeneratedEmail> {
-    const code = language?.trim().toLowerCase() || "en";
-    if (code === "en") return { subject: campaign!.subject!, body: campaign!.body! };
-    let translated = translatedTemplates.get(code);
-    if (!translated) {
-      translated = await translateEmailTemplate({
+  // Cache the campaign template localized (translated + tone-adjusted) per
+  // unique language+country combination so we only call the LLM once per
+  // region, not once per prospect.
+  const localizedTemplates = new Map<string, GeneratedEmail>();
+  async function templateForRegion(
+    language: string | null | undefined,
+    country: string | null | undefined,
+  ): Promise<GeneratedEmail> {
+    const languageCode = language?.trim().toLowerCase() || "en";
+    const countryKey = country?.trim().toLowerCase() || "";
+    const cacheKey = `${languageCode}:${countryKey}`;
+    let localized = localizedTemplates.get(cacheKey);
+    if (!localized) {
+      localized = await translateEmailTemplate({
         subject: campaign!.subject!,
         body: campaign!.body!,
-        targetLanguage: code,
+        targetLanguage: languageCode,
+        country,
         campaignId: campaign!.id,
       });
-      translatedTemplates.set(code, translated);
+      localizedTemplates.set(cacheKey, localized);
     }
-    return translated;
+    return localized;
   }
 
   for (const cp of toSend) {
@@ -355,7 +360,7 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
     }
 
     try {
-      const template = await templateForLanguage(prospect.detectedLanguage);
+      const template = await templateForRegion(prospect.detectedLanguage, prospect.country);
       const subject = applyMergeTokens(template.subject, prospect);
       const body = applyMergeTokens(template.body, prospect);
       const result = await sendGmailMessage({ to: prospect.email, subject, body });
