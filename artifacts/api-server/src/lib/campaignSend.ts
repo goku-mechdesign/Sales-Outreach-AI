@@ -15,6 +15,7 @@ import { isGmailConfigured, sendGmailMessage } from "./gmail";
 import { logger } from "./logger";
 import { createUnsubscribeToken } from "./unsubscribeToken";
 import { getPublicApiBaseUrl } from "./urls";
+import { buildTrackedHtmlBody, newTrackingId } from "./emailTracking";
 
 export interface CampaignSendResult {
   sent: number;
@@ -152,7 +153,14 @@ export async function sendCampaignBatch(
         applyMergeTokens(template.body, { ...prospect, unsubscribeUrl }),
         unsubscribeUrl,
       );
-      const result = await sendGmailMessage({ to: prospect.email, subject, body });
+      const trackingId = newTrackingId();
+      const trackedHtmlBody = buildTrackedHtmlBody(body, trackingId, [unsubscribeUrl]);
+      const result = await sendGmailMessage({
+        to: prospect.email,
+        subject,
+        body: trackedHtmlBody,
+        contentType: "text/html",
+      });
 
       const [thread] = await db
         .insert(emailThreadsTable)
@@ -175,6 +183,7 @@ export async function sendCampaignBatch(
         body,
         status: "sent",
         sentAt: new Date(),
+        trackingId,
       });
 
       const firstFollowupDays = settings.followupDays[0];

@@ -26,6 +26,11 @@ export const emailMessagesTable = pgTable("email_messages", {
     .notNull()
     .default("sent"),
   sentAt: timestamp("sent_at", { withTimezone: true }),
+  // Opaque id embedded in this message's tracking pixel/links so incoming
+  // /track/* hits can be correlated back to the message without exposing
+  // the numeric primary key. Only set on outgoing messages sent with open/
+  // click tracking (initial outreach + follow-ups, not auto-replies).
+  trackingId: text("tracking_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

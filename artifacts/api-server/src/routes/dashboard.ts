@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, count, and, isNotNull, lte, desc } from "drizzle-orm";
+import { eq, count, countDistinct, and, isNotNull, lte, desc } from "drizzle-orm";
 import {
   db,
   prospectsTable,
   emailMessagesTable,
   emailThreadsTable,
+  emailEventsTable,
   campaignProspectsTable,
 } from "@workspace/db";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
@@ -18,6 +19,8 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     [{ value: replies }],
     [{ value: interestedLeads }],
     [{ value: followupsPending }],
+    [{ value: opens }],
+    [{ value: clicks }],
     interestedThreads,
   ] = await Promise.all([
     db.select({ value: count() }).from(prospectsTable),
@@ -42,6 +45,17 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
           isNotNull(campaignProspectsTable.nextFollowupAt),
         ),
       ),
+    // Distinct messages with >=1 open/click, not raw event count, so a
+    // recipient re-opening the same email repeatedly doesn't inflate the
+    // rate past 100%.
+    db
+      .select({ value: countDistinct(emailEventsTable.messageId) })
+      .from(emailEventsTable)
+      .where(eq(emailEventsTable.type, "open")),
+    db
+      .select({ value: countDistinct(emailEventsTable.messageId) })
+      .from(emailEventsTable)
+      .where(eq(emailEventsTable.type, "click")),
     // Who, specifically, is interested -- every hot-flagged thread with the
     // prospect's contact info attached, most recent first.
     db
@@ -69,6 +83,10 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
       replies,
       interestedLeads,
       followupsPending,
+      opens,
+      clicks,
+      openRate: emailsSent > 0 ? opens / emailsSent : 0,
+      clickRate: emailsSent > 0 ? clicks / emailsSent : 0,
       interestedProspects: interestedThreads.map((t) => ({
         ...t,
         category: t.category ?? "interested",

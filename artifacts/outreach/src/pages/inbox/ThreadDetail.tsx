@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Sparkles, Send, Flame } from "lucide-react";
+import { ArrowLeft, Sparkles, Send, Flame, MailOpen, MousePointerClick } from "lucide-react";
 
 export default function ThreadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,6 +75,18 @@ export default function ThreadDetail() {
           {thread.category && <Badge variant="secondary">{thread.category.replace(/_/g, " ")}</Badge>}
         </div>
         <p className="text-muted-foreground text-sm mt-1">{thread.subject}</p>
+        {(thread.openCount ?? 0) > 0 || (thread.clickCount ?? 0) > 0 ? (
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1" data-testid="text-thread-open-count">
+              <MailOpen className="h-3.5 w-3.5" />
+              {thread.openCount ?? 0} {thread.openCount === 1 ? "open" : "opens"}
+            </span>
+            <span className="flex items-center gap-1" data-testid="text-thread-click-count">
+              <MousePointerClick className="h-3.5 w-3.5" />
+              {thread.clickCount ?? 0} {thread.clickCount === 1 ? "click" : "clicks"}
+            </span>
+          </div>
+        ) : null}
         {thread.aiSummary && (
           <Card className="mt-3">
             <CardContent className="pt-4 text-sm flex items-start gap-2">
@@ -100,6 +112,23 @@ export default function ThreadDetail() {
                 </span>
                 <span>{m.sentAt ? new Date(m.sentAt).toLocaleString() : "Draft"}</span>
               </div>
+              {m.direction === "outgoing" && ((m.openCount ?? 0) > 0 || (m.clickCount ?? 0) > 0) && (
+                <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
+                  {(m.openCount ?? 0) > 0 && (
+                    <span className="flex items-center gap-1" data-testid={`text-message-open-${m.id}`}>
+                      <MailOpen className="h-3.5 w-3.5" />
+                      Opened {m.openCount}x
+                      {m.lastOpenedAt && ` · last ${new Date(m.lastOpenedAt).toLocaleString()}`}
+                    </span>
+                  )}
+                  {(m.clickCount ?? 0) > 0 && (
+                    <span className="flex items-center gap-1" data-testid={`text-message-click-${m.id}`}>
+                      <MousePointerClick className="h-3.5 w-3.5" />
+                      Clicked {m.clickCount}x
+                    </span>
+                  )}
+                </div>
+              )}
             </CardHeader>
             <CardContent className="whitespace-pre-wrap text-sm pt-0">{m.body}</CardContent>
           </Card>

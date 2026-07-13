@@ -733,9 +733,15 @@ export const GetThreadResponse = zod.object({
   "body": zod.string(),
   "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional(),
+  "lastOpenedAt": zod.coerce.date().nullish(),
+  "lastClickedAt": zod.coerce.date().nullish()
 })),
-  "draftReply": zod.string().nullish()
+  "draftReply": zod.string().nullish(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional()
 }))
 
 
@@ -774,9 +780,15 @@ export const SendReplyResponse = zod.object({
   "body": zod.string(),
   "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional(),
+  "lastOpenedAt": zod.coerce.date().nullish(),
+  "lastClickedAt": zod.coerce.date().nullish()
 })),
-  "draftReply": zod.string().nullish()
+  "draftReply": zod.string().nullish(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional()
 }))
 
 
@@ -810,9 +822,15 @@ export const GenerateReplyDraftResponse = zod.object({
   "body": zod.string(),
   "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional(),
+  "lastOpenedAt": zod.coerce.date().nullish(),
+  "lastClickedAt": zod.coerce.date().nullish()
 })),
-  "draftReply": zod.string().nullish()
+  "draftReply": zod.string().nullish(),
+  "openCount": zod.number().optional(),
+  "clickCount": zod.number().optional()
 }))
 
 
@@ -1123,6 +1141,10 @@ export const GetDashboardSummaryResponse = zod.object({
   "replies": zod.number(),
   "interestedLeads": zod.number(),
   "followupsPending": zod.number(),
+  "opens": zod.number().describe('Number of distinct sent messages that were opened at least once.'),
+  "clicks": zod.number().describe('Number of distinct sent messages that had at least one link clicked.'),
+  "openRate": zod.number().describe('opens \/ emailsSent, 0 when nothing has been sent yet.'),
+  "clickRate": zod.number().describe('clicks \/ emailsSent, 0 when nothing has been sent yet.'),
   "interestedProspects": zod.array(zod.object({
   "threadId": zod.number(),
   "prospectId": zod.number().nullish(),

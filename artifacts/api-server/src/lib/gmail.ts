@@ -56,6 +56,8 @@ export interface SendGmailMessageParams {
   subject: string;
   body: string;
   threadId?: string | null;
+  /** Defaults to "text/plain". Pass "text/html" to send a tracked HTML body. */
+  contentType?: "text/plain" | "text/html";
 }
 
 export interface SendGmailMessageResult {
@@ -84,7 +86,7 @@ function buildRawMessage(params: SendGmailMessageParams): string {
   const lines = [
     `To: ${params.to}`,
     `Subject: ${encodeHeaderValue(params.subject)}`,
-    "Content-Type: text/plain; charset=UTF-8",
+    `Content-Type: ${params.contentType ?? "text/plain"}; charset=UTF-8`,
     "MIME-Version: 1.0",
     "",
     params.body,

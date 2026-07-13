@@ -2,7 +2,7 @@ import { useGetDashboardSummary } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, Send, MessageSquareReply, Flame, Clock } from "lucide-react";
+import { Users, Send, MessageSquareReply, Flame, Clock, MailOpen, MousePointerClick } from "lucide-react";
 
 const stats = [
   { key: "prospectsImported" as const, label: "Prospects imported", icon: Users },
@@ -11,6 +11,10 @@ const stats = [
   { key: "interestedLeads" as const, label: "Interested prospects", icon: Flame },
   { key: "followupsPending" as const, label: "Follow-ups pending", icon: Clock },
 ];
+
+function formatRate(rate: number | undefined): string {
+  return `${Math.round((rate ?? 0) * 100)}%`;
+}
 
 const categoryLabel: Record<string, string> = {
   interested: "Interested",
@@ -56,6 +60,45 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card data-testid="card-stat-openRate">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Open rate</CardTitle>
+            <MailOpen className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-3xl font-bold" data-testid="text-stat-openRate">
+                {formatRate(data?.openRate)}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {data?.opens ?? 0} of {data?.emailsSent ?? 0} opened
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card data-testid="card-stat-clickRate">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Click rate</CardTitle>
+            <MousePointerClick className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-3xl font-bold" data-testid="text-stat-clickRate">
+                {formatRate(data?.clickRate)}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {data?.clicks ?? 0} of {data?.emailsSent ?? 0} clicked
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {!isLoading && data?.prospectsImported === 0 && (

@@ -22,4 +22,10 @@ export interface EmailMessage {
   /** @nullable */
   sentAt?: Date | null;
   createdAt: Date;
+  openCount?: number;
+  clickCount?: number;
+  /** @nullable */
+  lastOpenedAt?: Date | null;
+  /** @nullable */
+  lastClickedAt?: Date | null;
 }
