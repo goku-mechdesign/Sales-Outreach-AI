@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, count } from "drizzle-orm";
-import { db, aiActivityTable } from "@workspace/db";
+import { db, aiActivityTable, prospectsTable, campaignsTable } from "@workspace/db";
 import { ListAiActivityQueryParams, ListAiActivityResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -19,16 +19,33 @@ router.get("/ai-activity", async (req, res): Promise<void> => {
   ].filter((f): f is NonNullable<typeof f> => Boolean(f));
   const whereClause = filters.length ? and(...filters) : undefined;
 
-  const [items, [{ value: total }]] = await Promise.all([
+  const [rows, [{ value: total }]] = await Promise.all([
     db
-      .select()
+      .select({
+        activity: aiActivityTable,
+        prospectName: prospectsTable.companyName,
+        prospectContact: prospectsTable.contactName,
+        prospectEmail: prospectsTable.email,
+        campaignName: campaignsTable.name,
+      })
       .from(aiActivityTable)
+      .leftJoin(prospectsTable, eq(aiActivityTable.relatedProspectId, prospectsTable.id))
+      .leftJoin(campaignsTable, eq(aiActivityTable.relatedCampaignId, campaignsTable.id))
       .where(whereClause)
       .orderBy(desc(aiActivityTable.createdAt))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
     db.select({ value: count() }).from(aiActivityTable).where(whereClause),
   ]);
+
+  const items = rows.map((r) => ({
+    ...r.activity,
+    relatedProspectName: r.prospectContact
+      ? `${r.prospectContact} (${r.prospectName})`
+      : r.prospectName ?? null,
+    relatedProspectEmail: r.prospectEmail ?? null,
+    relatedCampaignName: r.campaignName ?? null,
+  }));
 
   res.json(ListAiActivityResponse.parse({ items, total, page, pageSize }));
 });

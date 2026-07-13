@@ -17,8 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Activity, CheckCircle2, XCircle } from "lucide-react";
-import type { AiActivityKind, AiActivityStatus } from "@workspace/api-client-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Activity, CheckCircle2, XCircle, User, Megaphone } from "lucide-react";
+import type { AiActivity as AiActivityEntry, AiActivityKind, AiActivityStatus } from "@workspace/api-client-react";
 
 const kindLabel: Record<AiActivityKind, string> = {
   language_detection: "Language detection",
@@ -31,6 +38,7 @@ const kindLabel: Record<AiActivityKind, string> = {
 export default function AiActivity() {
   const [kind, setKind] = useState<AiActivityKind | "all">("all");
   const [status, setStatus] = useState<AiActivityStatus | "all">("all");
+  const [selected, setSelected] = useState<AiActivityEntry | null>(null);
 
   const { data, isLoading } = useListAiActivity({
     kind: kind === "all" ? undefined : kind,
@@ -96,7 +104,12 @@ export default function AiActivity() {
               </TableHeader>
               <TableBody>
                 {items.map((a) => (
-                  <TableRow key={a.id} data-testid={`row-activity-${a.id}`}>
+                  <TableRow
+                    key={a.id}
+                    data-testid={`row-activity-${a.id}`}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelected(a)}
+                  >
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {new Date(a.createdAt).toLocaleString()}
                     </TableCell>
@@ -105,6 +118,13 @@ export default function AiActivity() {
                     </TableCell>
                     <TableCell className="max-w-md">
                       <p className="text-sm truncate">{a.status === "error" ? a.errorMessage : a.response}</p>
+                      {(a.relatedProspectName || a.relatedCampaignName) && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {a.relatedCampaignName ? `Campaign: ${a.relatedCampaignName}` : ""}
+                          {a.relatedCampaignName && a.relatedProspectName ? " · " : ""}
+                          {a.relatedProspectName ? `To: ${a.relatedProspectName}` : ""}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {(a.promptTokens ?? 0) + (a.completionTokens ?? 0) || "—"}
@@ -127,6 +147,90 @@ export default function AiActivity() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-w-2xl">
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Badge variant="outline">{kindLabel[selected.kind]}</Badge>
+                  {selected.status === "success" ? (
+                    <span className="inline-flex items-center gap-1 text-sm text-foreground">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Success
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-sm text-destructive">
+                      <XCircle className="h-3.5 w-3.5" /> Error
+                    </span>
+                  )}
+                </DialogTitle>
+                <DialogDescription>
+                  {new Date(selected.createdAt).toLocaleString()}
+                </DialogDescription>
+              </DialogHeader>
+
+              {(selected.relatedCampaignName || selected.relatedProspectName) && (
+                <div className="flex flex-col gap-1.5 rounded-md border bg-muted/30 p-3 text-sm">
+                  {selected.relatedCampaignName && (
+                    <div className="flex items-center gap-2">
+                      <Megaphone className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-muted-foreground">Campaign:</span>
+                      <span className="font-medium">{selected.relatedCampaignName}</span>
+                    </div>
+                  )}
+                  {selected.relatedProspectName && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-muted-foreground">Sent to:</span>
+                      <span className="font-medium">{selected.relatedProspectName}</span>
+                      {selected.relatedProspectEmail && (
+                        <span className="text-muted-foreground">
+                          &lt;{selected.relatedProspectEmail}&gt;
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>Prompt tokens: {selected.promptTokens ?? "—"}</span>
+                <span>Completion tokens: {selected.completionTokens ?? "—"}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Prompt sent to AI
+                </p>
+                <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs">
+                  {selected.prompt}
+                </pre>
+              </div>
+
+              {selected.status === "success" ? (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Response
+                  </p>
+                  <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs">
+                    {selected.response}
+                  </pre>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-destructive">
+                    Error
+                  </p>
+                  <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                    {selected.errorMessage}
+                  </pre>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

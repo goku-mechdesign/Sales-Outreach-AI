@@ -368,7 +368,13 @@ export interface AiActivity {
   /** @nullable */
   relatedProspectId?: number | null;
   /** @nullable */
+  relatedProspectName?: string | null;
+  /** @nullable */
+  relatedProspectEmail?: string | null;
+  /** @nullable */
   relatedCampaignId?: number | null;
+  /** @nullable */
+  relatedCampaignName?: string | null;
   createdAt: string;
 }
 

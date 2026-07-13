@@ -1084,7 +1084,10 @@ components:
         status: { $ref: "#/components/schemas/AiActivityStatus" }
         errorMessage: { type: ["string", "null"] }
         relatedProspectId: { type: ["integer", "null"] }
+        relatedProspectName: { type: ["string", "null"] }
+        relatedProspectEmail: { type: ["string", "null"] }
         relatedCampaignId: { type: ["integer", "null"] }
+        relatedCampaignName: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
 
     AiActivityPage:
