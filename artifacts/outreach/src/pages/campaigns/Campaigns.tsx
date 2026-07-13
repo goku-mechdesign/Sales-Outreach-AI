@@ -47,7 +47,14 @@ export default function Campaigns() {
       onSuccess: (campaign) => {
         queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
         setCreateOpen(false);
-        toast({ title: "Campaign created" });
+        const skipped = campaign.skippedDuplicateCount ?? 0;
+        toast({
+          title: "Campaign created",
+          description:
+            skipped > 0
+              ? `${skipped} prospect${skipped === 1 ? "" : "s"} skipped — already active in another campaign.`
+              : undefined,
+        });
         setLocation(`/campaigns/${campaign.id}`);
       },
     },

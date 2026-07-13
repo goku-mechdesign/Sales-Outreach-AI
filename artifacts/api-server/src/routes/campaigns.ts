@@ -33,6 +33,7 @@ import { applyMergeTokens } from "../lib/mergeTokens";
 import { isGmailConfigured, sendGmailMessage } from "../lib/gmail";
 import { getOrCreateSettings } from "../lib/settings";
 import { sendCampaignBatch } from "../lib/campaignSend";
+import { filterActivelyEnrolledElsewhere } from "../lib/enrollment";
 
 const router: IRouter = Router();
 
@@ -92,22 +93,34 @@ router.post("/campaigns", async (req, res): Promise<void> => {
   }
   const { prospectIds, ...campaignFields } = parsed.data;
 
+  // A prospect already actively worked (pending/sent) in another campaign
+  // can't also be enrolled here -- skip it rather than double-enrolling.
+  const { eligible, skipped } = await filterActivelyEnrolledElsewhere(prospectIds);
+
   const [campaign] = await db
     .insert(campaignsTable)
     .values(campaignFields)
     .returning();
 
   const cpRows =
-    prospectIds.length > 0
+    eligible.length > 0
       ? await db
           .insert(campaignProspectsTable)
-          .values(prospectIds.map((prospectId) => ({ campaignId: campaign!.id, prospectId })))
+          .values(eligible.map((prospectId) => ({ campaignId: campaign!.id, prospectId })))
           .returning()
       : [];
 
   const detail = await withCounts(campaign!);
   const prospects = await withProspectDetails(cpRows);
-  res.status(201).json(GetCampaignResponse.parse({ ...detail, prospects }));
+  res
+    .status(201)
+    .json(
+      CreateCampaignResponse.parse({
+        ...detail,
+        prospects,
+        skippedDuplicateCount: skipped.length,
+      }),
+    );
 });
 
 router.get("/campaigns/:id", async (req, res): Promise<void> => {
