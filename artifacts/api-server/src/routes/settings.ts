@@ -3,12 +3,18 @@ import { eq } from "drizzle-orm";
 import { db, settingsTable } from "@workspace/db";
 import { GetSettingsResponse, UpdateSettingsBody, UpdateSettingsResponse } from "@workspace/api-zod";
 import { getOrCreateSettings } from "../lib/settings";
+import { computeEffectiveDailyLimit } from "../lib/warmup";
 
 const router: IRouter = Router();
 
 router.get("/settings", async (_req, res): Promise<void> => {
   const settings = await getOrCreateSettings();
-  res.json(GetSettingsResponse.parse(settings));
+  res.json(
+    GetSettingsResponse.parse({
+      ...settings,
+      effectiveDailyLimit: computeEffectiveDailyLimit(settings),
+    }),
+  );
 });
 
 router.patch("/settings", async (req, res): Promise<void> => {
@@ -23,7 +29,12 @@ router.patch("/settings", async (req, res): Promise<void> => {
     .set(parsed.data)
     .where(eq(settingsTable.id, current.id))
     .returning();
-  res.json(UpdateSettingsResponse.parse(updated));
+  res.json(
+    UpdateSettingsResponse.parse({
+      ...updated,
+      effectiveDailyLimit: computeEffectiveDailyLimit(updated!),
+    }),
+  );
 });
 
 export default router;

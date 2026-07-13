@@ -47,7 +47,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function sendCampaignBatch(
   campaign: Campaign,
   settings: Settings,
-  opts: { pacingSeconds?: number } = {},
+  opts: { pacingSeconds?: number; dailyLimitOverride?: number } = {},
 ): Promise<CampaignSendResult> {
   if (!campaign.subject || !campaign.body) {
     return { sent: 0, queued: 0, failed: 0, suppressed: 0 };
@@ -64,7 +64,11 @@ export async function sendCampaignBatch(
   const alreadySentToday = allCp.filter(
     (p) => p.lastEmailAt && p.lastEmailAt.toDateString() === new Date().toDateString(),
   ).length;
-  const remainingQuota = Math.max(settings.maxEmailsPerDay - alreadySentToday, 0);
+  // `dailyLimitOverride` lets the autonomous send scheduler pass in the
+  // current warm-up ramped quota; manual "Send now" omits it and always
+  // uses the flat `maxEmailsPerDay` cap.
+  const dailyLimit = opts.dailyLimitOverride ?? settings.maxEmailsPerDay;
+  const remainingQuota = Math.max(dailyLimit - alreadySentToday, 0);
   const toSend = pendingOnly.slice(0, remainingQuota);
   const queued = pendingOnly.length - toSend.length;
 

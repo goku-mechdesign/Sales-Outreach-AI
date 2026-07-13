@@ -56,6 +56,18 @@ export const settingsTable = pgTable("settings", {
   // Minimum delay between two consecutive autonomous sends, so bulk sends
   // don't look like a burst to mail providers (deliverability/reputation).
   sendPacingSeconds: integer("send_pacing_seconds").notNull().default(20),
+  // Deliverability warm-up ramp: while enabled, autonomous sending uses a
+  // gradually increasing daily quota (starting limit -> ceiling, stepping up
+  // every N days) instead of jumping straight to `maxEmailsPerDay`. Manual
+  // "Send now" always uses `maxEmailsPerDay` and ignores the ramp.
+  warmUpEnabled: boolean("warm_up_enabled").notNull().default(false),
+  warmUpStartDate: timestamp("warm_up_start_date", { withTimezone: true }),
+  warmUpStartingLimit: integer("warm_up_starting_limit").notNull().default(5),
+  warmUpIncrementAmount: integer("warm_up_increment_amount").notNull().default(5),
+  warmUpIncrementIntervalDays: integer("warm_up_increment_interval_days")
+    .notNull()
+    .default(1),
+  warmUpCeiling: integer("warm_up_ceiling").notNull().default(50),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
