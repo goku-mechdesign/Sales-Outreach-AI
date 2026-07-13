@@ -4,6 +4,7 @@
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "artifacts/outreach/dist" } }
   ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
