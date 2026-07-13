@@ -269,6 +269,7 @@ export default function Prospects() {
               <TableBody>
                 {items.map((p) => {
                   const isSuppressed = !!p.unsubscribedAt;
+                  const isBounced = !!p.bouncedAt;
                   return (
                   <TableRow key={p.id} data-testid={`row-prospect-${p.id}`}>
                     <TableCell>
@@ -296,7 +297,16 @@ export default function Prospects() {
                       <span className="text-xs text-muted-foreground capitalize">{p.source}</span>
                     </TableCell>
                     <TableCell>
-                      {isSuppressed ? (
+                      {isBounced ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="destructive" data-testid={`badge-bounced-${p.id}`}>
+                              Bounced
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>{p.bounceReason || "Email address bounced"}</TooltipContent>
+                        </Tooltip>
+                      ) : isSuppressed ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Badge variant="destructive" data-testid={`badge-suppressed-${p.id}`}>

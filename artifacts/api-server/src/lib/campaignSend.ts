@@ -122,6 +122,15 @@ export async function sendCampaignBatch(
       continue;
     }
 
+    if (prospect.bouncedAt) {
+      await db
+        .update(campaignProspectsTable)
+        .set({ status: "bounced", stoppedReason: prospect.bounceReason ?? "Email address bounced" })
+        .where(eq(campaignProspectsTable.id, cp.id));
+      suppressed += 1;
+      continue;
+    }
+
     if (!(await isGmailConfigured())) {
       await db
         .update(campaignProspectsTable)

@@ -9,7 +9,7 @@ import {
   type ReplyCategory,
   type Settings,
 } from "@workspace/db";
-import { fetchNewGmailReplies, isGmailConfigured, sendGmailMessage } from "./gmail";
+import { fetchNewGmailReplies, isGmailConfigured, sendGmailMessage, type GmailReply } from "./gmail";
 import { classifyReply, generateReplyDraft } from "./llm";
 import { getOrCreateSettings } from "./settings";
 import { logger } from "./logger";
@@ -19,6 +19,36 @@ export interface PollResult {
   newlyClassified: number;
   hotLeads: number;
   autoReplied: number;
+  bounces: number;
+}
+
+const BOUNCE_SENDER_PATTERN = /mailer-daemon|postmaster|mail delivery subsystem/i;
+const BOUNCE_SUBJECT_PATTERN =
+  /delivery status notification|delivery (has )?failed|undeliver(ed|able)|returned mail|mail delivery (failed|subsystem)|failure notice/i;
+
+/**
+ * Heuristic bounce detection: real hard bounces come back as automated
+ * postmaster/mailer-daemon notifications rather than a human reply, either
+ * from a recognizable sender address or with a standard bounce subject line
+ * (both vary by mail provider, so we check either).
+ */
+function isBounceNotification(reply: GmailReply): boolean {
+  return (
+    BOUNCE_SENDER_PATTERN.test(reply.fromAddress) ||
+    BOUNCE_SUBJECT_PATTERN.test(reply.subject)
+  );
+}
+
+/** Pulls a short human-readable reason out of a bounce notification body, falling back to a generic message. */
+function extractBounceReason(body: string): string {
+  const smtpStatus = body.match(/\b5\d{2}[ -]\d\.\d\.\d\b[^\n]*/);
+  if (smtpStatus) return smtpStatus[0].trim().slice(0, 300);
+
+  const line = body
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && !/^(hi|hello|dear)/i.test(l));
+  return (line || "Message could not be delivered").slice(0, 300);
 }
 
 /**
@@ -48,13 +78,14 @@ function shouldAutoSend(
  */
 export async function pollInboxAndProcess(): Promise<PollResult> {
   if (!(await isGmailConfigured())) {
-    return { newMessages: 0, newlyClassified: 0, hotLeads: 0, autoReplied: 0 };
+    return { newMessages: 0, newlyClassified: 0, hotLeads: 0, autoReplied: 0, bounces: 0 };
   }
 
   const replies = await fetchNewGmailReplies();
   let newlyClassified = 0;
   let hotLeads = 0;
   let autoReplied = 0;
+  let bounces = 0;
 
   for (const reply of replies) {
     const [existingThread] = await db
@@ -92,6 +123,60 @@ export async function pollInboxAndProcess(): Promise<PollResult> {
       .update(emailThreadsTable)
       .set({ lastMessageAt: reply.receivedAt })
       .where(eq(emailThreadsTable.id, threadId));
+
+    if (isBounceNotification(reply)) {
+      try {
+        const reason = extractBounceReason(reply.body);
+        const [thread] = await db
+          .select()
+          .from(emailThreadsTable)
+          .where(eq(emailThreadsTable.id, threadId));
+
+        let campaignProspectId = thread?.campaignProspectId ?? null;
+        let prospectId = thread?.prospectId ?? null;
+
+        if (!campaignProspectId) {
+          const [cp] = await db
+            .select()
+            .from(campaignProspectsTable)
+            .where(eq(campaignProspectsTable.gmailThreadId, reply.gmailThreadId));
+          if (cp) {
+            campaignProspectId = cp.id;
+            prospectId = cp.prospectId;
+          }
+        }
+
+        if (campaignProspectId) {
+          await db
+            .update(campaignProspectsTable)
+            .set({ status: "bounced", stoppedReason: reason, nextFollowupAt: null })
+            .where(eq(campaignProspectsTable.id, campaignProspectId));
+        }
+
+        if (prospectId) {
+          await db
+            .update(prospectsTable)
+            .set({ status: "bounced", bouncedAt: reply.receivedAt, bounceReason: reason })
+            .where(eq(prospectsTable.id, prospectId));
+
+          await db.insert(notificationsTable).values({
+            threadId,
+            title: "📭 Email bounced",
+            body: `Delivery to ${thread?.companyName ?? "a prospect"} failed: ${reason}`,
+          });
+        } else {
+          logger.error(
+            { threadId, gmailThreadId: reply.gmailThreadId },
+            "Bounce notification received but could not be correlated to a prospect",
+          );
+        }
+
+        bounces += 1;
+      } catch (err) {
+        logger.error({ err, threadId }, "Failed to process bounce notification");
+      }
+      continue;
+    }
 
     try {
       const classification = await classifyReply({
@@ -222,5 +307,6 @@ export async function pollInboxAndProcess(): Promise<PollResult> {
     newlyClassified,
     hotLeads,
     autoReplied,
+    bounces,
   };
 }

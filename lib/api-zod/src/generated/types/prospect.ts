@@ -36,6 +36,10 @@ export interface Prospect {
   unsubscribedAt?: Date | null;
   /** @nullable */
   unsubscribeReason?: string | null;
+  /** @nullable */
+  bouncedAt?: Date | null;
+  /** @nullable */
+  bounceReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

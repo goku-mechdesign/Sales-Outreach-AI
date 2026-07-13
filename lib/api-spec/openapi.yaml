@@ -782,6 +782,8 @@ components:
         notes: { type: ["string", "null"] }
         unsubscribedAt: { type: ["string", "null"], format: date-time }
         unsubscribeReason: { type: ["string", "null"] }
+        bouncedAt: { type: ["string", "null"], format: date-time }
+        bounceReason: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

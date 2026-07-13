@@ -50,6 +50,12 @@ export const prospectsTable = pgTable("prospects", {
   // `status` so it layers on top of whatever stage the prospect is in.
   unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
   unsubscribeReason: text("unsubscribe_reason"),
+  // Hard bounce: once set, this prospect's email address is treated as dead
+  // and must never be emailed again by any send path -- same enforcement
+  // shape as `unsubscribedAt`, but detected automatically from bounce
+  // notifications rather than user action.
+  bouncedAt: timestamp("bounced_at", { withTimezone: true }),
+  bounceReason: text("bounce_reason"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
