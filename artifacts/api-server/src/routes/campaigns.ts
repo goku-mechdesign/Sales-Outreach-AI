@@ -5,8 +5,6 @@ import {
   campaignsTable,
   campaignProspectsTable,
   prospectsTable,
-  emailThreadsTable,
-  emailMessagesTable,
   type Campaign,
   type CampaignProspect,
 } from "@workspace/db";
@@ -30,10 +28,11 @@ import {
   ScheduleCampaignBody,
   ScheduleCampaignResponse,
 } from "@workspace/api-zod";
-import { generateCampaignTemplate, translateEmailTemplate, type GeneratedEmail } from "../lib/llm";
+import { generateCampaignTemplate } from "../lib/llm";
 import { applyMergeTokens } from "../lib/mergeTokens";
 import { isGmailConfigured, sendGmailMessage } from "../lib/gmail";
 import { getOrCreateSettings } from "../lib/settings";
+import { sendCampaignBatch } from "../lib/campaignSend";
 
 const router: IRouter = Router();
 
@@ -145,9 +144,11 @@ router.patch("/campaigns/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  // Editing the subject/body invalidates any prior approval to auto-send.
+  const invalidatesApproval = parsed.data.subject !== undefined || parsed.data.body !== undefined;
   const [campaign] = await db
     .update(campaignsTable)
-    .set(parsed.data)
+    .set({ ...parsed.data, ...(invalidatesApproval ? { templateApproved: false } : {}) })
     .where(eq(campaignsTable.id, params.data.id))
     .returning();
   if (!campaign) {
@@ -204,7 +205,9 @@ router.post("/campaigns/:id/generate", async (req, res): Promise<void> => {
 
   const [updated] = await db
     .update(campaignsTable)
-    .set({ subject: draft.subject, body: draft.body })
+    // Template changed -- require re-approval before the agent can
+    // autonomously send under it again.
+    .set({ subject: draft.subject, body: draft.body, templateApproved: false })
     .where(eq(campaignsTable.id, campaign.id))
     .returning();
 
@@ -293,148 +296,18 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
   }
 
   const settings = await getOrCreateSettings();
-  const pending = await db
-    .select()
-    .from(campaignProspectsTable)
-    .where(eq(campaignProspectsTable.campaignId, campaign.id));
-  const pendingOnly = pending.filter((p) => p.status === "pending");
-
-  const alreadySentToday = pending.filter(
-    (p) =>
-      p.lastEmailAt &&
-      p.lastEmailAt.toDateString() === new Date().toDateString(),
-  ).length;
-  const remainingQuota = Math.max(settings.maxEmailsPerDay - alreadySentToday, 0);
-  const toSend = pendingOnly.slice(0, remainingQuota);
-  const queued = pendingOnly.length - toSend.length;
-
-  let sent = 0;
-  let failed = 0;
-
-  // Cache the campaign template localized (translated + tone-adjusted) per
-  // unique language+country combination so we only call the LLM once per
-  // region, not once per prospect.
-  const localizedTemplates = new Map<string, GeneratedEmail>();
-  async function templateForRegion(
-    language: string | null | undefined,
-    country: string | null | undefined,
-  ): Promise<GeneratedEmail> {
-    const languageCode = language?.trim().toLowerCase() || "en";
-    const countryKey = country?.trim().toLowerCase() || "";
-    const cacheKey = `${languageCode}:${countryKey}`;
-    let localized = localizedTemplates.get(cacheKey);
-    if (!localized) {
-      localized = await translateEmailTemplate({
-        subject: campaign!.subject!,
-        body: campaign!.body!,
-        targetLanguage: languageCode,
-        country,
-        campaignId: campaign!.id,
-      });
-      localizedTemplates.set(cacheKey, localized);
-    }
-    return localized;
-  }
-
-  for (const cp of toSend) {
-    const [prospect] = await db
-      .select()
-      .from(prospectsTable)
-      .where(eq(prospectsTable.id, cp.prospectId));
-    if (!prospect?.email) {
-      await db
-        .update(campaignProspectsTable)
-        .set({ status: "bounced", stoppedReason: "No email address on file" })
-        .where(eq(campaignProspectsTable.id, cp.id));
-      failed += 1;
-      continue;
-    }
-
-    if (!(await isGmailConfigured())) {
-      await db
-        .update(campaignProspectsTable)
-        .set({ stoppedReason: "Gmail is not connected" })
-        .where(eq(campaignProspectsTable.id, cp.id));
-      failed += 1;
-      continue;
-    }
-
-    try {
-      const template = await templateForRegion(prospect.detectedLanguage, prospect.country);
-      const subject = applyMergeTokens(template.subject, prospect);
-      const body = applyMergeTokens(template.body, prospect);
-      const result = await sendGmailMessage({ to: prospect.email, subject, body });
-
-      const [thread] = await db
-        .insert(emailThreadsTable)
-        .values({
-          prospectId: prospect.id,
-          campaignProspectId: cp.id,
-          companyName: prospect.companyName,
-          gmailThreadId: result.gmailThreadId,
-          subject,
-        })
-        .returning();
-
-      await db.insert(emailMessagesTable).values({
-        threadId: thread!.id,
-        direction: "outgoing",
-        gmailMessageId: result.gmailMessageId,
-        fromAddress: settings.notificationEmail ?? "",
-        toAddress: prospect.email,
-        subject,
-        body,
-        status: "sent",
-        sentAt: new Date(),
-      });
-
-      const firstFollowupDays = settings.followupDays[0];
-      await db
-        .update(campaignProspectsTable)
-        .set({
-          status: "sent",
-          gmailThreadId: result.gmailThreadId,
-          lastEmailAt: new Date(),
-          nextFollowupAt:
-            firstFollowupDays !== undefined
-              ? new Date(Date.now() + firstFollowupDays * 24 * 60 * 60 * 1000)
-              : null,
-        })
-        .where(eq(campaignProspectsTable.id, cp.id));
-      await db
-        .update(prospectsTable)
-        .set({ status: "contacted" })
-        .where(eq(prospectsTable.id, prospect.id));
-
-      sent += 1;
-    } catch (err) {
-      req.log.error({ err, campaignProspectId: cp.id }, "Failed to send campaign email");
-      await db
-        .update(campaignProspectsTable)
-        .set({
-          stoppedReason: err instanceof Error ? err.message : "Send failed",
-        })
-        .where(eq(campaignProspectsTable.id, cp.id));
-      failed += 1;
-    }
-  }
+  // Manual "Send now" clicks are a deliberate, already-reviewed action, so
+  // pacing is only applied to autonomous sends (see lib/autonomy.ts).
+  const { sent, queued, failed } = await sendCampaignBatch(campaign, settings);
 
   const [refreshedCampaign] = await db
-    .update(campaignsTable)
-    .set({ status: sent > 0 || failed > 0 ? "sending" : campaign.status, sentAt: new Date() })
-    .where(eq(campaignsTable.id, campaign.id))
-    .returning();
+    .select()
+    .from(campaignsTable)
+    .where(eq(campaignsTable.id, campaign.id));
   const cpRows = await db
     .select()
     .from(campaignProspectsTable)
     .where(eq(campaignProspectsTable.campaignId, campaign.id));
-  const remainingPending = cpRows.some((r) => r.status === "pending");
-  if (!remainingPending) {
-    await db
-      .update(campaignsTable)
-      .set({ status: "completed" })
-      .where(eq(campaignsTable.id, campaign.id));
-  }
 
   const detail = await withCounts(refreshedCampaign!);
   const prospects = await withProspectDetails(cpRows);
@@ -447,6 +320,38 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
       campaign: { ...detail, prospects },
     }),
   );
+});
+
+router.post("/campaigns/:id/approve-template", async (req, res): Promise<void> => {
+  const params = GetCampaignParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const [campaign] = await db
+    .select()
+    .from(campaignsTable)
+    .where(eq(campaignsTable.id, params.data.id));
+  if (!campaign) {
+    res.status(404).json({ error: "Campaign not found" });
+    return;
+  }
+  if (!campaign.subject || !campaign.body) {
+    res.status(400).json({ error: "Generate the email template before approving it." });
+    return;
+  }
+  const [updated] = await db
+    .update(campaignsTable)
+    .set({ templateApproved: true })
+    .where(eq(campaignsTable.id, campaign.id))
+    .returning();
+  const cpRows = await db
+    .select()
+    .from(campaignProspectsTable)
+    .where(eq(campaignProspectsTable.campaignId, campaign.id));
+  const detail = await withCounts(updated!);
+  const prospects = await withProspectDetails(cpRows);
+  res.json(GetCampaignResponse.parse({ ...detail, prospects }));
 });
 
 router.post("/campaigns/:id/schedule", async (req, res): Promise<void> => {

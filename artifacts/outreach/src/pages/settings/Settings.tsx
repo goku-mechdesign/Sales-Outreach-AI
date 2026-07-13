@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useGetSettings, useUpdateSettings } from "@workspace/api-client-react";
-import type { ReplyCategory } from "@workspace/api-client-react";
+import { useGetSettings, useUpdateSettings, useListCampaigns } from "@workspace/api-client-react";
+import type { ReplyCategory, AutoDiscoveryCadence } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+
+const CADENCE_OPTIONS: { value: AutoDiscoveryCadence; label: string }[] = [
+  { value: "manual", label: "Off (manual only)" },
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+];
 
 const REPLY_CATEGORY_OPTIONS: { value: string; label: string; hint: string }[] = [
   { value: "need_more_info", label: "Requests for more info", hint: "Basic questions about the product/service" },
@@ -29,7 +42,11 @@ export default function Settings() {
   const [autoReplyHoldHotLeads, setAutoReplyHoldHotLeads] = useState(true);
   const [notifyOnAutoReply, setNotifyOnAutoReply] = useState(true);
   const [autoReplyCategories, setAutoReplyCategories] = useState<ReplyCategory[]>([]);
+  const [autoDiscoveryEnabled, setAutoDiscoveryEnabled] = useState(false);
+  const [autoDiscoveryCadence, setAutoDiscoveryCadence] = useState<AutoDiscoveryCadence>("manual");
+  const [autoEnrollCampaignId, setAutoEnrollCampaignId] = useState<string>("none");
   const [loaded, setLoaded] = useState(false);
+  const { data: campaigns } = useListCampaigns();
 
   if (settings && !loaded) {
     setForm({
@@ -41,11 +58,23 @@ export default function Settings() {
       notificationEmail: settings.notificationEmail ?? "",
       maxEmailsPerDay: String(settings.maxEmailsPerDay ?? 50),
       followupDays: (settings.followupDays ?? []).join(", "),
+      autoDiscoveryTargetCount: String(settings.autoDiscoveryTargetCount ?? 25),
+      autoDiscoveryIndustry: settings.autoDiscoveryIndustry ?? "",
+      autoDiscoveryCountry: settings.autoDiscoveryCountry ?? "",
+      autoDiscoveryCity: settings.autoDiscoveryCity ?? "",
+      autoDiscoveryKeywords: settings.autoDiscoveryKeywords ?? "",
+      autoDiscoveryCompanySize: settings.autoDiscoveryCompanySize ?? "",
+      sendPacingSeconds: String(settings.sendPacingSeconds ?? 20),
     });
     setAutoReplyEnabled(settings.autoReplyEnabled ?? false);
     setAutoReplyHoldHotLeads(settings.autoReplyHoldHotLeads ?? true);
     setNotifyOnAutoReply(settings.notifyOnAutoReply ?? true);
     setAutoReplyCategories(settings.autoReplyCategories ?? []);
+    setAutoDiscoveryEnabled(settings.autoDiscoveryEnabled ?? false);
+    setAutoDiscoveryCadence(settings.autoDiscoveryCadence ?? "manual");
+    setAutoEnrollCampaignId(
+      settings.autoEnrollCampaignId != null ? String(settings.autoEnrollCampaignId) : "none",
+    );
     setLoaded(true);
   }
 
@@ -82,6 +111,16 @@ export default function Settings() {
         autoReplyHoldHotLeads,
         notifyOnAutoReply,
         autoReplyCategories,
+        autoDiscoveryEnabled,
+        autoDiscoveryCadence,
+        autoDiscoveryTargetCount: Number(form.autoDiscoveryTargetCount) || 25,
+        autoDiscoveryIndustry: form.autoDiscoveryIndustry || undefined,
+        autoDiscoveryCountry: form.autoDiscoveryCountry || undefined,
+        autoDiscoveryCity: form.autoDiscoveryCity || undefined,
+        autoDiscoveryKeywords: form.autoDiscoveryKeywords || undefined,
+        autoDiscoveryCompanySize: form.autoDiscoveryCompanySize || undefined,
+        autoEnrollCampaignId: autoEnrollCampaignId === "none" ? null : Number(autoEnrollCampaignId),
+        sendPacingSeconds: Number(form.sendPacingSeconds) || 20,
       },
     });
   };
@@ -209,6 +248,156 @@ export default function Settings() {
               onCheckedChange={setNotifyOnAutoReply}
               data-testid="switch-notify-auto-reply"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Autonomous discovery</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Let the agent search for new prospects on a schedule instead of clicking "Discover" yourself,
+            and automatically enroll them into one ongoing campaign.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+            <div>
+              <Label htmlFor="autoDiscoveryEnabled">Automatically find new prospects</Label>
+              <p className="text-xs text-muted-foreground">
+                Master switch for scheduled discovery runs.
+              </p>
+            </div>
+            <Switch
+              id="autoDiscoveryEnabled"
+              checked={autoDiscoveryEnabled}
+              onCheckedChange={setAutoDiscoveryEnabled}
+              data-testid="switch-auto-discovery-enabled"
+            />
+          </div>
+
+          <div className={autoDiscoveryEnabled ? "space-y-4" : "space-y-4 opacity-50 pointer-events-none"}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="autoDiscoveryCadence">How often</Label>
+                <Select
+                  value={autoDiscoveryCadence}
+                  onValueChange={(v) => setAutoDiscoveryCadence(v as AutoDiscoveryCadence)}
+                >
+                  <SelectTrigger id="autoDiscoveryCadence" data-testid="select-discovery-cadence">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="autoDiscoveryTargetCount">Prospects per run</Label>
+                <Input
+                  id="autoDiscoveryTargetCount"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={form.autoDiscoveryTargetCount}
+                  onChange={(e) => setForm({ ...form, autoDiscoveryTargetCount: e.target.value })}
+                  data-testid="input-discovery-target-count"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="autoDiscoveryIndustry">Industry</Label>
+                <Input
+                  id="autoDiscoveryIndustry"
+                  placeholder="e.g. SaaS"
+                  value={form.autoDiscoveryIndustry}
+                  onChange={(e) => setForm({ ...form, autoDiscoveryIndustry: e.target.value })}
+                  data-testid="input-discovery-industry"
+                />
+              </div>
+              <div>
+                <Label htmlFor="autoDiscoveryCountry">Country</Label>
+                <Input
+                  id="autoDiscoveryCountry"
+                  placeholder="e.g. United States"
+                  value={form.autoDiscoveryCountry}
+                  onChange={(e) => setForm({ ...form, autoDiscoveryCountry: e.target.value })}
+                  data-testid="input-discovery-country"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="autoDiscoveryCity">City (optional)</Label>
+                <Input
+                  id="autoDiscoveryCity"
+                  value={form.autoDiscoveryCity}
+                  onChange={(e) => setForm({ ...form, autoDiscoveryCity: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="autoDiscoveryCompanySize">Company size (optional)</Label>
+                <Input
+                  id="autoDiscoveryCompanySize"
+                  placeholder="e.g. 11-50"
+                  value={form.autoDiscoveryCompanySize}
+                  onChange={(e) => setForm({ ...form, autoDiscoveryCompanySize: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="autoDiscoveryKeywords">Keywords (optional)</Label>
+              <Input
+                id="autoDiscoveryKeywords"
+                placeholder="e.g. e-commerce, logistics"
+                value={form.autoDiscoveryKeywords}
+                onChange={(e) => setForm({ ...form, autoDiscoveryKeywords: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="autoEnrollCampaignId">Always-on campaign</Label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Newly discovered prospects are added here automatically. The agent only sends once you've
+                approved that campaign's template.
+              </p>
+              <Select value={autoEnrollCampaignId} onValueChange={setAutoEnrollCampaignId}>
+                <SelectTrigger id="autoEnrollCampaignId" data-testid="select-always-on-campaign">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None &mdash; don't auto-enroll</SelectItem>
+                  {(campaigns ?? []).map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="sendPacingSeconds">Seconds between autonomous sends</Label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Spaces out automatic sends so they don't look like a burst to mail providers, protecting your
+                sending reputation.
+              </p>
+              <Input
+                id="sendPacingSeconds"
+                type="number"
+                min={0}
+                max={600}
+                value={form.sendPacingSeconds}
+                onChange={(e) => setForm({ ...form, sendPacingSeconds: e.target.value })}
+                data-testid="input-send-pacing-seconds"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

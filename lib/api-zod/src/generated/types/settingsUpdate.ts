@@ -5,6 +5,7 @@
  * AI Sales Outreach Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AutoDiscoveryCadence } from './autoDiscoveryCadence';
 import type { ReplyCategory } from './replyCategory';
 
 export interface SettingsUpdate {
@@ -28,4 +29,23 @@ export interface SettingsUpdate {
   autoReplyHoldHotLeads?: boolean;
   notifyOnAutoReply?: boolean;
   notificationEmail?: string;
+  autoDiscoveryEnabled?: boolean;
+  autoDiscoveryCadence?: AutoDiscoveryCadence;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  autoDiscoveryTargetCount?: number;
+  autoDiscoveryIndustry?: string;
+  autoDiscoveryCountry?: string;
+  autoDiscoveryCity?: string;
+  autoDiscoveryKeywords?: string;
+  autoDiscoveryCompanySize?: string;
+  /** @nullable */
+  autoEnrollCampaignId?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 600
+     */
+  sendPacingSeconds?: number;
 }

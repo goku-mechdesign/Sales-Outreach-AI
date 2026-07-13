@@ -7,6 +7,8 @@ import {
   useSendTestEmail,
   useSendCampaign,
   useScheduleCampaign,
+  useApproveCampaignTemplate,
+  useGetSettings,
   getGetCampaignQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Sparkles, Send, FlaskConical, CalendarClock } from "lucide-react";
+import { ArrowLeft, Sparkles, Send, FlaskConical, CalendarClock, ShieldCheck, Bot } from "lucide-react";
 import type { CampaignProspectStatus } from "@workspace/api-client-react";
 
 const prospectStatusVariant: Record<CampaignProspectStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -99,6 +101,16 @@ export default function CampaignDetail() {
       onSuccess: () => { invalidate(); toast({ title: "Campaign scheduled" }); },
     },
   });
+  const approveTemplate = useApproveCampaignTemplate({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Template approved", description: "The agent can now auto-send under this template." });
+      },
+    },
+  });
+  const { data: settings } = useGetSettings();
+  const isAlwaysOn = settings?.autoEnrollCampaignId === campaignId;
 
   if (isLoading || !campaign) {
     return <div className="text-sm text-muted-foreground">Loading campaign...</div>;
@@ -118,6 +130,18 @@ export default function CampaignDetail() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold">{campaign.name}</h1>
             <Badge variant="secondary" className="capitalize">{campaign.status}</Badge>
+            {isAlwaysOn && (
+              <Badge variant="default" data-testid="badge-always-on">
+                <Bot className="h-3 w-3 mr-1" />
+                Always-on
+              </Badge>
+            )}
+            {campaign.templateApproved && (
+              <Badge variant="outline" data-testid="badge-template-approved">
+                <ShieldCheck className="h-3 w-3 mr-1" />
+                Template approved
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground text-sm mt-1">{campaign.goal}</p>
         </div>
@@ -165,6 +189,15 @@ export default function CampaignDetail() {
             <code className="text-foreground">{"{{companyName}}"}</code> as merge tokens &mdash; they're
             automatically replaced with each recipient's details when the campaign sends.
           </p>
+          {isAlwaysOn && (
+            <p className="text-xs rounded-md border border-border bg-muted/50 p-2 text-muted-foreground">
+              This is your always-on campaign &mdash; the agent auto-enrolls newly discovered prospects
+              here.{" "}
+              {campaign.templateApproved
+                ? "Its template is approved, so the agent can send to them automatically."
+                : "Approve the template below before the agent can send to them automatically."}
+            </p>
+          )}
           <div>
             <Label htmlFor="subject">Subject</Label>
             <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} data-testid="input-subject" />
@@ -173,7 +206,7 @@ export default function CampaignDetail() {
             <Label htmlFor="body">Body</Label>
             <Textarea id="body" rows={10} value={body} onChange={(e) => setBody(e.target.value)} data-testid="textarea-body" />
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -182,6 +215,16 @@ export default function CampaignDetail() {
               data-testid="button-save-template"
             >
               Save template
+            </Button>
+            <Button
+              size="sm"
+              variant={campaign.templateApproved ? "outline" : "default"}
+              onClick={() => approveTemplate.mutate({ id: campaignId })}
+              disabled={approveTemplate.isPending || !campaign.subject || campaign.templateApproved}
+              data-testid="button-approve-template"
+            >
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              {campaign.templateApproved ? "Approved for auto-send" : "Approve for auto-send"}
             </Button>
           </div>
         </CardContent>

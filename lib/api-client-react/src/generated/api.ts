@@ -1260,6 +1260,77 @@ export const useSendCampaign = <TError = ErrorType<NotFoundResponse>,
       return useMutation(getSendCampaignMutationOptions(options));
     }
 
+export const getApproveCampaignTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/campaigns/${id}/approve-template`
+}
+
+/**
+ * @summary One-time approval required before the agent can autonomously send this campaign's template
+ */
+export const approveCampaignTemplate = async (id: number, options?: RequestInit): Promise<CampaignDetail> => {
+
+  return customFetch<CampaignDetail>(getApproveCampaignTemplateUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getApproveCampaignTemplateMutationOptions = <TError = ErrorType<void | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCampaignTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveCampaignTemplate>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approveCampaignTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveCampaignTemplate>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approveCampaignTemplate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveCampaignTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof approveCampaignTemplate>>>
+
+    export type ApproveCampaignTemplateMutationError = ErrorType<void | NotFoundResponse>
+
+    /**
+ * @summary One-time approval required before the agent can autonomously send this campaign's template
+ */
+export const useApproveCampaignTemplate = <TError = ErrorType<void | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveCampaignTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveCampaignTemplate>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApproveCampaignTemplateMutationOptions(options));
+    }
+
 export const getScheduleCampaignUrl = (id: number,) => {
 
 

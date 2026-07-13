@@ -21,6 +21,7 @@ export interface Campaign {
   body?: string | null;
   status: CampaignStatus;
   followupCount: number;
+  templateApproved: boolean;
   /** @nullable */
   scheduledAt?: Date | null;
   /** @nullable */

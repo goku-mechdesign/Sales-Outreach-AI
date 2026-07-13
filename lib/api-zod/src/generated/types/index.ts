@@ -11,6 +11,7 @@ export * from './aiActivity';
 export * from './aiActivityKind';
 export * from './aiActivityPage';
 export * from './aiActivityStatus';
+export * from './autoDiscoveryCadence';
 export * from './campaign';
 export * from './campaignDetail';
 export * from './campaignInput';

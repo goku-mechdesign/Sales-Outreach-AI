@@ -168,6 +168,7 @@ export interface Campaign {
   body?: string | null;
   status: CampaignStatus;
   followupCount: number;
+  templateApproved: boolean;
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
@@ -387,6 +388,15 @@ export interface AiActivityPage {
   pageSize: number;
 }
 
+export type AutoDiscoveryCadence = typeof AutoDiscoveryCadence[keyof typeof AutoDiscoveryCadence];
+
+
+export const AutoDiscoveryCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+  manual: 'manual',
+} as const;
+
 export interface Settings {
   id: number;
   companyName: string;
@@ -410,6 +420,24 @@ export interface Settings {
   notifyOnAutoReply?: boolean;
   /** @nullable */
   notificationEmail?: string | null;
+  autoDiscoveryEnabled?: boolean;
+  autoDiscoveryCadence?: AutoDiscoveryCadence;
+  autoDiscoveryTargetCount?: number;
+  /** @nullable */
+  autoDiscoveryIndustry?: string | null;
+  /** @nullable */
+  autoDiscoveryCountry?: string | null;
+  /** @nullable */
+  autoDiscoveryCity?: string | null;
+  /** @nullable */
+  autoDiscoveryKeywords?: string | null;
+  /** @nullable */
+  autoDiscoveryCompanySize?: string | null;
+  /** @nullable */
+  lastAutoDiscoveryAt?: string | null;
+  /** @nullable */
+  autoEnrollCampaignId?: number | null;
+  sendPacingSeconds?: number;
   updatedAt?: string;
 }
 
@@ -434,6 +462,25 @@ export interface SettingsUpdate {
   autoReplyHoldHotLeads?: boolean;
   notifyOnAutoReply?: boolean;
   notificationEmail?: string;
+  autoDiscoveryEnabled?: boolean;
+  autoDiscoveryCadence?: AutoDiscoveryCadence;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  autoDiscoveryTargetCount?: number;
+  autoDiscoveryIndustry?: string;
+  autoDiscoveryCountry?: string;
+  autoDiscoveryCity?: string;
+  autoDiscoveryKeywords?: string;
+  autoDiscoveryCompanySize?: string;
+  /** @nullable */
+  autoEnrollCampaignId?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 600
+     */
+  sendPacingSeconds?: number;
 }
 
 export type IntegrationCategory = typeof IntegrationCategory[keyof typeof IntegrationCategory];

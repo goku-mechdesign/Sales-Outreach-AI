@@ -312,6 +312,25 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /campaigns/{id}/approve-template:
+    post:
+      operationId: approveCampaignTemplate
+      tags: [campaigns]
+      summary: One-time approval required before the agent can autonomously send this campaign's template
+      parameters:
+        - $ref: "#/components/parameters/CampaignId"
+      responses:
+        "200":
+          description: Template approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "400":
+          description: Template not generated yet
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /campaigns/{id}/schedule:
     post:
       operationId: scheduleCampaign
@@ -861,6 +880,7 @@ components:
           cta,
           status,
           followupCount,
+          templateApproved,
           prospectCount,
           sentCount,
           createdAt,
@@ -878,6 +898,7 @@ components:
         body: { type: ["string", "null"] }
         status: { $ref: "#/components/schemas/CampaignStatus" }
         followupCount: { type: integer }
+        templateApproved: { type: boolean }
         scheduledAt: { type: ["string", "null"], format: date-time }
         sentAt: { type: ["string", "null"], format: date-time }
         prospectCount: { type: integer }
@@ -1137,7 +1158,22 @@ components:
         autoReplyHoldHotLeads: { type: boolean }
         notifyOnAutoReply: { type: boolean }
         notificationEmail: { type: ["string", "null"] }
+        autoDiscoveryEnabled: { type: boolean }
+        autoDiscoveryCadence: { $ref: "#/components/schemas/AutoDiscoveryCadence" }
+        autoDiscoveryTargetCount: { type: integer }
+        autoDiscoveryIndustry: { type: ["string", "null"] }
+        autoDiscoveryCountry: { type: ["string", "null"] }
+        autoDiscoveryCity: { type: ["string", "null"] }
+        autoDiscoveryKeywords: { type: ["string", "null"] }
+        autoDiscoveryCompanySize: { type: ["string", "null"] }
+        lastAutoDiscoveryAt: { type: ["string", "null"], format: date-time }
+        autoEnrollCampaignId: { type: ["integer", "null"] }
+        sendPacingSeconds: { type: integer }
         updatedAt: { type: string, format: date-time }
+
+    AutoDiscoveryCadence:
+      type: string
+      enum: [daily, weekly, manual]
 
     SettingsUpdate:
       type: object
@@ -1161,6 +1197,16 @@ components:
         autoReplyHoldHotLeads: { type: boolean }
         notifyOnAutoReply: { type: boolean }
         notificationEmail: { type: string }
+        autoDiscoveryEnabled: { type: boolean }
+        autoDiscoveryCadence: { $ref: "#/components/schemas/AutoDiscoveryCadence" }
+        autoDiscoveryTargetCount: { type: integer, minimum: 1, maximum: 100 }
+        autoDiscoveryIndustry: { type: string }
+        autoDiscoveryCountry: { type: string }
+        autoDiscoveryCity: { type: string }
+        autoDiscoveryKeywords: { type: string }
+        autoDiscoveryCompanySize: { type: string }
+        autoEnrollCampaignId: { type: ["integer", "null"] }
+        sendPacingSeconds: { type: integer, minimum: 0, maximum: 600 }
 
     # ------------------------ Integrations ------------------------
     IntegrationCategory:

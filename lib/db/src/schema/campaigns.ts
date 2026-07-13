@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -24,6 +24,9 @@ export const campaignsTable = pgTable("campaigns", {
     .notNull()
     .default("draft"),
   followupCount: integer("followup_count").notNull().default(0),
+  // Must be explicitly approved once before the agent will autonomously
+  // send under this template; resets to false whenever the template changes.
+  templateApproved: boolean("template_approved").notNull().default(false),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
