@@ -780,6 +780,8 @@ components:
         status: { $ref: "#/components/schemas/ProspectStatus" }
         confidenceScore: { type: number }
         notes: { type: ["string", "null"] }
+        unsubscribedAt: { type: ["string", "null"], format: date-time }
+        unsubscribeReason: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -811,6 +813,8 @@ components:
         contactName: { type: string }
         status: { $ref: "#/components/schemas/ProspectStatus" }
         notes: { type: string }
+        unsubscribedAt: { type: ["string", "null"], format: date-time }
+        unsubscribeReason: { type: ["string", "null"] }
 
     ProspectBulkStatusInput:
       type: object
@@ -968,11 +972,12 @@ components:
 
     CampaignSendResult:
       type: object
-      required: [sent, queued, failed, campaign]
+      required: [sent, queued, failed, suppressed, campaign]
       properties:
         sent: { type: integer }
         queued: { type: integer }
         failed: { type: integer }
+        suppressed: { type: integer }
         campaign: { $ref: "#/components/schemas/CampaignDetail" }
 
     # ------------------------ Threads / inbox ------------------------

@@ -16,6 +16,7 @@ import { getOrCreateSettings } from "./settings";
 export interface FollowupRunResult {
   sent: number;
   failed: number;
+  suppressed: number;
 }
 
 /**
@@ -25,7 +26,7 @@ export interface FollowupRunResult {
  */
 export async function processDueFollowups(): Promise<FollowupRunResult> {
   if (!(await isGmailConfigured())) {
-    return { sent: 0, failed: 0 };
+    return { sent: 0, failed: 0, suppressed: 0 };
   }
 
   const settings = await getOrCreateSettings();
@@ -44,6 +45,7 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
 
   let sent = 0;
   let failed = 0;
+  let suppressed = 0;
 
   for (const cp of due) {
     if (cp.followupStage >= settings.followupDays.length) continue;
@@ -58,6 +60,19 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
         .from(prospectsTable)
         .where(eq(prospectsTable.id, cp.prospectId));
       if (!campaign || !prospect || !prospect.email) continue;
+
+      if (prospect.unsubscribedAt) {
+        await db
+          .update(campaignProspectsTable)
+          .set({
+            status: "stopped",
+            stoppedReason: "Prospect unsubscribed",
+            nextFollowupAt: null,
+          })
+          .where(eq(campaignProspectsTable.id, cp.id));
+        suppressed += 1;
+        continue;
+      }
 
       const nextStage = cp.followupStage + 1;
       const draft = await generateFollowupEmail({
@@ -125,5 +140,5 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
     }
   }
 
-  return { sent, failed };
+  return { sent, failed, suppressed };
 }

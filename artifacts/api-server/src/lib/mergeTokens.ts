@@ -1,9 +1,10 @@
-/** Substitutes {{contactName}} / {{companyName}} merge tokens in a campaign template for one recipient. */
+/** Substitutes {{contactName}} / {{companyName}} / {{unsubscribeUrl}} merge tokens in a campaign template for one recipient. */
 export function applyMergeTokens(
   text: string,
-  values: { contactName?: string | null; companyName: string },
+  values: { contactName?: string | null; companyName: string; unsubscribeUrl?: string },
 ): string {
   return text
     .replaceAll("{{contactName}}", values.contactName?.trim() || "there")
-    .replaceAll("{{companyName}}", values.companyName);
+    .replaceAll("{{companyName}}", values.companyName)
+    .replaceAll("{{unsubscribeUrl}}", values.unsubscribeUrl ?? "");
 }

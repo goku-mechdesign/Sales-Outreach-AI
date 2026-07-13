@@ -45,6 +45,11 @@ export const prospectsTable = pgTable("prospects", {
     .default("new"),
   confidenceScore: real("confidence_score").notNull().default(0),
   notes: text("notes"),
+  // Suppression: once set, this prospect must never be emailed again by any
+  // send path (manual, autonomous, or auto-enrollment) -- independent of
+  // `status` so it layers on top of whatever stage the prospect is in.
+  unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
+  unsubscribeReason: text("unsubscribe_reason"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

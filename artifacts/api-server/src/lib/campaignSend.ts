@@ -13,11 +13,24 @@ import { generateCampaignTemplate, translateEmailTemplate, type GeneratedEmail }
 import { applyMergeTokens } from "./mergeTokens";
 import { isGmailConfigured, sendGmailMessage } from "./gmail";
 import { logger } from "./logger";
+import { createUnsubscribeToken } from "./unsubscribeToken";
+import { getPublicApiBaseUrl } from "./urls";
 
 export interface CampaignSendResult {
   sent: number;
   queued: number;
   failed: number;
+  suppressed: number;
+}
+
+function buildUnsubscribeUrl(prospectId: number): string {
+  return `${getPublicApiBaseUrl()}/unsubscribe?token=${createUnsubscribeToken(prospectId)}`;
+}
+
+/** Appends a one-click unsubscribe footer to every outgoing email, unless the template already references it via {{unsubscribeUrl}}. */
+function withUnsubscribeFooter(body: string, unsubscribeUrl: string): string {
+  if (body.includes(unsubscribeUrl)) return body;
+  return `${body}\n\n---\nDon't want to hear from us again? Unsubscribe: ${unsubscribeUrl}`;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,7 +50,7 @@ export async function sendCampaignBatch(
   opts: { pacingSeconds?: number } = {},
 ): Promise<CampaignSendResult> {
   if (!campaign.subject || !campaign.body) {
-    return { sent: 0, queued: 0, failed: 0 };
+    return { sent: 0, queued: 0, failed: 0, suppressed: 0 };
   }
 
   const pacingMs = Math.max(0, opts.pacingSeconds ?? 0) * 1000;
@@ -57,6 +70,7 @@ export async function sendCampaignBatch(
 
   let sent = 0;
   let failed = 0;
+  let suppressed = 0;
 
   const localizedTemplates = new Map<string, GeneratedEmail>();
   async function templateForRegion(
@@ -99,6 +113,15 @@ export async function sendCampaignBatch(
       continue;
     }
 
+    if (prospect.unsubscribedAt) {
+      await db
+        .update(campaignProspectsTable)
+        .set({ status: "stopped", stoppedReason: "Prospect unsubscribed" })
+        .where(eq(campaignProspectsTable.id, cp.id));
+      suppressed += 1;
+      continue;
+    }
+
     if (!(await isGmailConfigured())) {
       await db
         .update(campaignProspectsTable)
@@ -110,8 +133,12 @@ export async function sendCampaignBatch(
 
     try {
       const template = await templateForRegion(prospect.detectedLanguage, prospect.country);
+      const unsubscribeUrl = buildUnsubscribeUrl(prospect.id);
       const subject = applyMergeTokens(template.subject, prospect);
-      const body = applyMergeTokens(template.body, prospect);
+      const body = withUnsubscribeFooter(
+        applyMergeTokens(template.body, { ...prospect, unsubscribeUrl }),
+        unsubscribeUrl,
+      );
       const result = await sendGmailMessage({ to: prospect.email, subject, body });
 
       const [thread] = await db
@@ -183,5 +210,5 @@ export async function sendCampaignBatch(
       .where(eq(campaignsTable.id, campaign.id));
   }
 
-  return { sent, queued, failed };
+  return { sent, queued, failed, suppressed };
 }

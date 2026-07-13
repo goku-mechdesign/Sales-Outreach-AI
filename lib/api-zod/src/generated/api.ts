@@ -50,6 +50,8 @@ export const ListProspectsResponse = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
@@ -92,6 +94,8 @@ export const CreateProspectResponse = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -131,6 +135,8 @@ export const DiscoverProspectsResponse = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
@@ -163,6 +169,8 @@ export const BulkUpdateProspectStatusResponseItem = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -191,6 +199,8 @@ export const GetProspectResponse = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -217,7 +227,9 @@ export const UpdateProspectBody = zod.object({
   "email": zod.string().optional(),
   "contactName": zod.string().optional(),
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']).optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish()
 })
 
 export const UpdateProspectResponse = zod.object({
@@ -235,6 +247,8 @@ export const UpdateProspectResponse = zod.object({
   "status": zod.enum(['new', 'approved', 'rejected', 'contacted', 'replied', 'hot', 'not_interested', 'bounced']),
   "confidenceScore": zod.number(),
   "notes": zod.string().nullish(),
+  "unsubscribedAt": zod.coerce.date().nullish(),
+  "unsubscribeReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -511,6 +525,7 @@ export const SendCampaignResponse = zod.object({
   "sent": zod.number(),
   "queued": zod.number(),
   "failed": zod.number(),
+  "suppressed": zod.number(),
   "campaign": zod.object({
   "id": zod.number(),
   "name": zod.string(),

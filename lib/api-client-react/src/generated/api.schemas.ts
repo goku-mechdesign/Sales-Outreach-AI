@@ -66,6 +66,10 @@ export interface Prospect {
   confidenceScore: number;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  unsubscribedAt?: string | null;
+  /** @nullable */
+  unsubscribeReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,6 +100,10 @@ export interface ProspectUpdate {
   contactName?: string;
   status?: ProspectStatus;
   notes?: string;
+  /** @nullable */
+  unsubscribedAt?: string | null;
+  /** @nullable */
+  unsubscribeReason?: string | null;
 }
 
 export interface ProspectBulkStatusInput {
@@ -239,6 +247,7 @@ export interface CampaignSendResult {
   sent: number;
   queued: number;
   failed: number;
+  suppressed: number;
   campaign: CampaignDetail;
 }
 

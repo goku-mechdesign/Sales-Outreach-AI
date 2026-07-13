@@ -298,7 +298,7 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
   const settings = await getOrCreateSettings();
   // Manual "Send now" clicks are a deliberate, already-reviewed action, so
   // pacing is only applied to autonomous sends (see lib/autonomy.ts).
-  const { sent, queued, failed } = await sendCampaignBatch(campaign, settings);
+  const { sent, queued, failed, suppressed } = await sendCampaignBatch(campaign, settings);
 
   const [refreshedCampaign] = await db
     .select()
@@ -317,6 +317,7 @@ router.post("/campaigns/:id/send", async (req, res): Promise<void> => {
       sent,
       queued,
       failed,
+      suppressed,
       campaign: { ...detail, prospects },
     }),
   );

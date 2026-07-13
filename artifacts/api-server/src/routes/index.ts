@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import unsubscribeRouter from "./unsubscribe";
 import prospectsRouter from "./prospects";
 import campaignsRouter from "./campaigns";
 import threadsRouter from "./threads";
@@ -13,6 +14,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(unsubscribeRouter);
 
 router.use(
   requireAuth,

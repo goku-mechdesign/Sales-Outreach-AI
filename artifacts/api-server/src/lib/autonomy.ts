@@ -57,7 +57,7 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     .where(eq(settingsTable.id, settings.id));
 
   let enrolled = 0;
-  const emailable = result.created.filter((p) => p.email);
+  const emailable = result.created.filter((p) => p.email && !p.unsubscribedAt);
   if (settings.autoEnrollCampaignId && emailable.length > 0) {
     const [campaign] = await db
       .select()
@@ -90,6 +90,7 @@ export interface AutoSendRunResult {
   sent: number;
   queued: number;
   failed: number;
+  suppressed: number;
 }
 
 /**
@@ -100,7 +101,7 @@ export interface AutoSendRunResult {
 export async function runAutonomousSendIfEnabled(): Promise<AutoSendRunResult> {
   const settings = await getOrCreateSettings();
   if (!settings.autoEnrollCampaignId) {
-    return { ran: false, sent: 0, queued: 0, failed: 0 };
+    return { ran: false, sent: 0, queued: 0, failed: 0, suppressed: 0 };
   }
 
   const [campaign] = await db
@@ -108,7 +109,7 @@ export async function runAutonomousSendIfEnabled(): Promise<AutoSendRunResult> {
     .from(campaignsTable)
     .where(eq(campaignsTable.id, settings.autoEnrollCampaignId));
   if (!campaign || !campaign.templateApproved || !campaign.subject || !campaign.body) {
-    return { ran: false, sent: 0, queued: 0, failed: 0 };
+    return { ran: false, sent: 0, queued: 0, failed: 0, suppressed: 0 };
   }
 
   const result = await sendCampaignBatch(campaign, settings, {

@@ -40,7 +40,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Sparkles, Trash2, Search, Users } from "lucide-react";
+import { Plus, Sparkles, Trash2, Search, Users, BellOff, Bell } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const statusOptions: ProspectStatus[] = [
   "new",
@@ -258,11 +263,13 @@ export default function Prospects() {
                   <TableHead>Location</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-10" />
+                  <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((p) => (
+                {items.map((p) => {
+                  const isSuppressed = !!p.unsubscribedAt;
+                  return (
                   <TableRow key={p.id} data-testid={`row-prospect-${p.id}`}>
                     <TableCell>
                       <Checkbox
@@ -289,41 +296,85 @@ export default function Prospects() {
                       <span className="text-xs text-muted-foreground capitalize">{p.source}</span>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={p.status}
-                        onValueChange={(status) =>
-                          updateProspect.mutate({ id: p.id, data: { status: status as ProspectStatus } })
-                        }
-                      >
-                        <SelectTrigger className="w-36 h-8" data-testid={`select-status-${p.id}`}>
-                          <SelectValue>
-                            <Badge variant={statusVariant[p.status]} className="capitalize">
-                              {p.status.replace(/_/g, " ")}
+                      {isSuppressed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="destructive" data-testid={`badge-suppressed-${p.id}`}>
+                              Suppressed
                             </Badge>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {s.replace(/_/g, " ")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          </TooltipTrigger>
+                          <TooltipContent>{p.unsubscribeReason || "Unsubscribed"}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Select
+                          value={p.status}
+                          onValueChange={(status) =>
+                            updateProspect.mutate({ id: p.id, data: { status: status as ProspectStatus } })
+                          }
+                        >
+                          <SelectTrigger className="w-36 h-8" data-testid={`select-status-${p.id}`}>
+                            <SelectValue>
+                              <Badge variant={statusVariant[p.status]} className="capitalize">
+                                {p.status.replace(/_/g, " ")}
+                              </Badge>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s.replace(/_/g, " ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => deleteProspect.mutate({ id: p.id })}
-                        data-testid={`button-delete-prospect-${p.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
+                      <div className="flex items-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() =>
+                                updateProspect.mutate({
+                                  id: p.id,
+                                  data: isSuppressed
+                                    ? { unsubscribedAt: null, unsubscribeReason: null }
+                                    : {
+                                        unsubscribedAt: new Date().toISOString(),
+                                        unsubscribeReason: "Manually suppressed",
+                                      },
+                                })
+                              }
+                              data-testid={`button-toggle-suppress-${p.id}`}
+                            >
+                              {isSuppressed ? (
+                                <Bell className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <BellOff className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isSuppressed ? "Re-enable outreach" : "Suppress from outreach"}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => deleteProspect.mutate({ id: p.id })}
+                          data-testid={`button-delete-prospect-${p.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
