@@ -3,6 +3,7 @@ import { db, campaignsTable, campaignProspectsTable, settingsTable } from "@work
 import { getOrCreateSettings } from "./settings";
 import { discoverAndCreateProspects } from "./discoveryFlow";
 import { sendCampaignBatch } from "./campaignSend";
+import { computeEffectiveDailyLimit } from "./warmup";
 import { logger } from "./logger";
 
 const CADENCE_MS: Record<"daily" | "weekly", number> = {
@@ -116,6 +117,7 @@ export async function runAutonomousSendIfEnabled(): Promise<AutoSendRunResult> {
 
   const result = await sendCampaignBatch(campaign, settings, {
     pacingSeconds: settings.sendPacingSeconds,
+    dailyLimitOverride: computeEffectiveDailyLimit(settings),
   });
 
   if (result.sent > 0 || result.failed > 0) {

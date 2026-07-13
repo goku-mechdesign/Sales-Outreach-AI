@@ -451,6 +451,15 @@ export interface Settings {
   /** @nullable */
   autoEnrollCampaignId?: number | null;
   sendPacingSeconds?: number;
+  warmUpEnabled?: boolean;
+  /** @nullable */
+  warmUpStartDate?: string | null;
+  warmUpStartingLimit?: number;
+  warmUpIncrementAmount?: number;
+  warmUpIncrementIntervalDays?: number;
+  warmUpCeiling?: number;
+  /** Read-only. Today's actual autonomous-send quota: the current warm-up ramped limit if warm-up is active, otherwise maxEmailsPerDay. */
+  effectiveDailyLimit?: number;
   updatedAt?: string;
 }
 
@@ -494,6 +503,29 @@ export interface SettingsUpdate {
      * @maximum 600
      */
   sendPacingSeconds?: number;
+  warmUpEnabled?: boolean;
+  /** @nullable */
+  warmUpStartDate?: string | null;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpStartingLimit?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpIncrementAmount?: number;
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  warmUpIncrementIntervalDays?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpCeiling?: number;
 }
 
 export type IntegrationCategory = typeof IntegrationCategory[keyof typeof IntegrationCategory];

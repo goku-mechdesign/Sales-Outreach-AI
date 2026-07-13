@@ -1176,6 +1176,18 @@ components:
         lastAutoDiscoveryAt: { type: ["string", "null"], format: date-time }
         autoEnrollCampaignId: { type: ["integer", "null"] }
         sendPacingSeconds: { type: integer }
+        warmUpEnabled: { type: boolean }
+        warmUpStartDate: { type: ["string", "null"], format: date-time }
+        warmUpStartingLimit: { type: integer }
+        warmUpIncrementAmount: { type: integer }
+        warmUpIncrementIntervalDays: { type: integer }
+        warmUpCeiling: { type: integer }
+        effectiveDailyLimit:
+          type: integer
+          description: >-
+            Read-only. Today's actual autonomous-send quota: the current
+            warm-up ramped limit if warm-up is active, otherwise
+            maxEmailsPerDay.
         updatedAt: { type: string, format: date-time }
 
     AutoDiscoveryCadence:
@@ -1214,6 +1226,12 @@ components:
         autoDiscoveryCompanySize: { type: string }
         autoEnrollCampaignId: { type: ["integer", "null"] }
         sendPacingSeconds: { type: integer, minimum: 0, maximum: 600 }
+        warmUpEnabled: { type: boolean }
+        warmUpStartDate: { type: ["string", "null"], format: date-time }
+        warmUpStartingLimit: { type: integer, minimum: 1, maximum: 500 }
+        warmUpIncrementAmount: { type: integer, minimum: 1, maximum: 500 }
+        warmUpIncrementIntervalDays: { type: integer, minimum: 1, maximum: 90 }
+        warmUpCeiling: { type: integer, minimum: 1, maximum: 500 }
 
     # ------------------------ Integrations ------------------------
     IntegrationCategory:

@@ -49,5 +49,14 @@ export interface Settings {
   /** @nullable */
   autoEnrollCampaignId?: number | null;
   sendPacingSeconds?: number;
+  warmUpEnabled?: boolean;
+  /** @nullable */
+  warmUpStartDate?: Date | null;
+  warmUpStartingLimit?: number;
+  warmUpIncrementAmount?: number;
+  warmUpIncrementIntervalDays?: number;
+  warmUpCeiling?: number;
+  /** Read-only. Today's actual autonomous-send quota: the current warm-up ramped limit if warm-up is active, otherwise maxEmailsPerDay. */
+  effectiveDailyLimit?: number;
   updatedAt?: Date;
 }

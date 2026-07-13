@@ -48,4 +48,27 @@ export interface SettingsUpdate {
      * @maximum 600
      */
   sendPacingSeconds?: number;
+  warmUpEnabled?: boolean;
+  /** @nullable */
+  warmUpStartDate?: Date | null;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpStartingLimit?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpIncrementAmount?: number;
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  warmUpIncrementIntervalDays?: number;
+  /**
+     * @minimum 1
+     * @maximum 500
+     */
+  warmUpCeiling?: number;
 }

@@ -45,6 +45,7 @@ export default function Settings() {
   const [autoDiscoveryEnabled, setAutoDiscoveryEnabled] = useState(false);
   const [autoDiscoveryCadence, setAutoDiscoveryCadence] = useState<AutoDiscoveryCadence>("manual");
   const [autoEnrollCampaignId, setAutoEnrollCampaignId] = useState<string>("none");
+  const [warmUpEnabled, setWarmUpEnabled] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const { data: campaigns } = useListCampaigns();
 
@@ -65,6 +66,11 @@ export default function Settings() {
       autoDiscoveryKeywords: settings.autoDiscoveryKeywords ?? "",
       autoDiscoveryCompanySize: settings.autoDiscoveryCompanySize ?? "",
       sendPacingSeconds: String(settings.sendPacingSeconds ?? 20),
+      warmUpStartDate: settings.warmUpStartDate ? settings.warmUpStartDate.slice(0, 10) : "",
+      warmUpStartingLimit: String(settings.warmUpStartingLimit ?? 5),
+      warmUpIncrementAmount: String(settings.warmUpIncrementAmount ?? 5),
+      warmUpIncrementIntervalDays: String(settings.warmUpIncrementIntervalDays ?? 1),
+      warmUpCeiling: String(settings.warmUpCeiling ?? 50),
     });
     setAutoReplyEnabled(settings.autoReplyEnabled ?? false);
     setAutoReplyHoldHotLeads(settings.autoReplyHoldHotLeads ?? true);
@@ -75,6 +81,7 @@ export default function Settings() {
     setAutoEnrollCampaignId(
       settings.autoEnrollCampaignId != null ? String(settings.autoEnrollCampaignId) : "none",
     );
+    setWarmUpEnabled(settings.warmUpEnabled ?? false);
     setLoaded(true);
   }
 
@@ -121,6 +128,14 @@ export default function Settings() {
         autoDiscoveryCompanySize: form.autoDiscoveryCompanySize || undefined,
         autoEnrollCampaignId: autoEnrollCampaignId === "none" ? null : Number(autoEnrollCampaignId),
         sendPacingSeconds: Number(form.sendPacingSeconds) || 20,
+        warmUpEnabled,
+        warmUpStartDate: form.warmUpStartDate
+          ? new Date(form.warmUpStartDate).toISOString()
+          : undefined,
+        warmUpStartingLimit: Number(form.warmUpStartingLimit) || 5,
+        warmUpIncrementAmount: Number(form.warmUpIncrementAmount) || 5,
+        warmUpIncrementIntervalDays: Number(form.warmUpIncrementIntervalDays) || 1,
+        warmUpCeiling: Number(form.warmUpCeiling) || 50,
       },
     });
   };
@@ -398,6 +413,105 @@ export default function Settings() {
                 data-testid="input-send-pacing-seconds"
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Deliverability warm-up ramp</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            New or recently-quiet sending addresses build reputation slowly instead of jumping straight to
+            full volume. While active, autonomous sending respects the ramped limit below instead of the flat
+            "Max emails per day" cap. Manual "Send now" is never affected.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+            <div>
+              <Label htmlFor="warmUpEnabled">Enable warm-up ramp</Label>
+              <p className="text-xs text-muted-foreground">
+                Master switch. Off means autonomous sending always uses the flat daily cap.
+              </p>
+            </div>
+            <Switch
+              id="warmUpEnabled"
+              checked={warmUpEnabled}
+              onCheckedChange={setWarmUpEnabled}
+              data-testid="switch-warm-up-enabled"
+            />
+          </div>
+
+          <div className={warmUpEnabled ? "space-y-4" : "space-y-4 opacity-50 pointer-events-none"}>
+            <div>
+              <Label htmlFor="warmUpStartDate">Ramp start date</Label>
+              <Input
+                id="warmUpStartDate"
+                type="date"
+                value={form.warmUpStartDate}
+                onChange={(e) => setForm({ ...form, warmUpStartDate: e.target.value })}
+                data-testid="input-warm-up-start-date"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="warmUpStartingLimit">Starting daily limit</Label>
+                <Input
+                  id="warmUpStartingLimit"
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={form.warmUpStartingLimit}
+                  onChange={(e) => setForm({ ...form, warmUpStartingLimit: e.target.value })}
+                  data-testid="input-warm-up-starting-limit"
+                />
+              </div>
+              <div>
+                <Label htmlFor="warmUpCeiling">Ceiling</Label>
+                <Input
+                  id="warmUpCeiling"
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={form.warmUpCeiling}
+                  onChange={(e) => setForm({ ...form, warmUpCeiling: e.target.value })}
+                  data-testid="input-warm-up-ceiling"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="warmUpIncrementAmount">Increase by</Label>
+                <Input
+                  id="warmUpIncrementAmount"
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={form.warmUpIncrementAmount}
+                  onChange={(e) => setForm({ ...form, warmUpIncrementAmount: e.target.value })}
+                  data-testid="input-warm-up-increment-amount"
+                />
+              </div>
+              <div>
+                <Label htmlFor="warmUpIncrementIntervalDays">Every N days</Label>
+                <Input
+                  id="warmUpIncrementIntervalDays"
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={form.warmUpIncrementIntervalDays}
+                  onChange={(e) => setForm({ ...form, warmUpIncrementIntervalDays: e.target.value })}
+                  data-testid="input-warm-up-increment-interval"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-md border p-3 bg-muted/40">
+            <p className="text-xs text-muted-foreground">Today's effective autonomous send limit</p>
+            <p className="text-2xl font-bold" data-testid="text-effective-daily-limit">
+              {settings?.effectiveDailyLimit ?? settings?.maxEmailsPerDay} / day
+            </p>
           </div>
         </CardContent>
       </Card>

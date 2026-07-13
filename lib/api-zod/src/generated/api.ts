@@ -899,6 +899,13 @@ export const GetSettingsResponse = zod.object({
   "lastAutoDiscoveryAt": zod.coerce.date().nullish(),
   "autoEnrollCampaignId": zod.number().nullish(),
   "sendPacingSeconds": zod.number().optional(),
+  "warmUpEnabled": zod.boolean().optional(),
+  "warmUpStartDate": zod.coerce.date().nullish(),
+  "warmUpStartingLimit": zod.number().optional(),
+  "warmUpIncrementAmount": zod.number().optional(),
+  "warmUpIncrementIntervalDays": zod.number().optional(),
+  "warmUpCeiling": zod.number().optional(),
+  "effectiveDailyLimit": zod.number().optional().describe('Read-only. Today\'s actual autonomous-send quota: the current warm-up ramped limit if warm-up is active, otherwise maxEmailsPerDay.'),
   "updatedAt": zod.coerce.date().optional()
 })
 
@@ -913,6 +920,14 @@ export const updateSettingsBodyAutoDiscoveryTargetCountMax = 100;
 
 export const updateSettingsBodySendPacingSecondsMin = 0;
 export const updateSettingsBodySendPacingSecondsMax = 600;
+
+export const updateSettingsBodyWarmUpStartingLimitMax = 500;
+
+export const updateSettingsBodyWarmUpIncrementAmountMax = 500;
+
+export const updateSettingsBodyWarmUpIncrementIntervalDaysMax = 90;
+
+export const updateSettingsBodyWarmUpCeilingMax = 500;
 
 
 
@@ -941,7 +956,13 @@ export const UpdateSettingsBody = zod.object({
   "autoDiscoveryKeywords": zod.string().optional(),
   "autoDiscoveryCompanySize": zod.string().optional(),
   "autoEnrollCampaignId": zod.number().nullish(),
-  "sendPacingSeconds": zod.number().min(updateSettingsBodySendPacingSecondsMin).max(updateSettingsBodySendPacingSecondsMax).optional()
+  "sendPacingSeconds": zod.number().min(updateSettingsBodySendPacingSecondsMin).max(updateSettingsBodySendPacingSecondsMax).optional(),
+  "warmUpEnabled": zod.boolean().optional(),
+  "warmUpStartDate": zod.coerce.date().nullish(),
+  "warmUpStartingLimit": zod.number().min(1).max(updateSettingsBodyWarmUpStartingLimitMax).optional(),
+  "warmUpIncrementAmount": zod.number().min(1).max(updateSettingsBodyWarmUpIncrementAmountMax).optional(),
+  "warmUpIncrementIntervalDays": zod.number().min(1).max(updateSettingsBodyWarmUpIncrementIntervalDaysMax).optional(),
+  "warmUpCeiling": zod.number().min(1).max(updateSettingsBodyWarmUpCeilingMax).optional()
 })
 
 export const UpdateSettingsResponse = zod.object({
@@ -972,6 +993,13 @@ export const UpdateSettingsResponse = zod.object({
   "lastAutoDiscoveryAt": zod.coerce.date().nullish(),
   "autoEnrollCampaignId": zod.number().nullish(),
   "sendPacingSeconds": zod.number().optional(),
+  "warmUpEnabled": zod.boolean().optional(),
+  "warmUpStartDate": zod.coerce.date().nullish(),
+  "warmUpStartingLimit": zod.number().optional(),
+  "warmUpIncrementAmount": zod.number().optional(),
+  "warmUpIncrementIntervalDays": zod.number().optional(),
+  "warmUpCeiling": zod.number().optional(),
+  "effectiveDailyLimit": zod.number().optional().describe('Read-only. Today\'s actual autonomous-send quota: the current warm-up ramped limit if warm-up is active, otherwise maxEmailsPerDay.'),
   "updatedAt": zod.coerce.date().optional()
 })
 
