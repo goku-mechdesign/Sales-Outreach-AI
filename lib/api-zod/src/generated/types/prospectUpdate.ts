@@ -20,4 +20,8 @@ export interface ProspectUpdate {
   contactName?: string;
   status?: ProspectStatus;
   notes?: string;
+  /** @nullable */
+  unsubscribedAt?: Date | null;
+  /** @nullable */
+  unsubscribeReason?: string | null;
 }

@@ -32,6 +32,10 @@ export interface Prospect {
   confidenceScore: number;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  unsubscribedAt?: Date | null;
+  /** @nullable */
+  unsubscribeReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

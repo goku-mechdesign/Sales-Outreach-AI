@@ -11,5 +11,6 @@ export interface CampaignSendResult {
   sent: number;
   queued: number;
   failed: number;
+  suppressed: number;
   campaign: CampaignDetail;
 }
