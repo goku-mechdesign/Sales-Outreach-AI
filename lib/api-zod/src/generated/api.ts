@@ -778,7 +778,10 @@ export const ListAiActivityResponse = zod.object({
   "status": zod.enum(['success', 'error']),
   "errorMessage": zod.string().nullish(),
   "relatedProspectId": zod.number().nullish(),
+  "relatedProspectName": zod.string().nullish(),
+  "relatedProspectEmail": zod.string().nullish(),
   "relatedCampaignId": zod.number().nullish(),
+  "relatedCampaignName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })),
   "total": zod.number(),
