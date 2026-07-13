@@ -9,7 +9,8 @@ import {
   Puzzle, 
   Settings as SettingsIcon,
   LogOut,
-  Bell
+  Bell,
+  Kanban
 } from "lucide-react";
 import { 
   useListNotifications, 
@@ -25,6 +26,7 @@ import { formatDistanceToNow } from "date-fns";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Prospects", href: "/prospects", icon: Users },
+  { name: "Pipeline", href: "/pipeline", icon: Kanban },
   { name: "Campaigns", href: "/campaigns", icon: Send },
   { name: "Inbox", href: "/inbox", icon: InboxIcon },
   { name: "AI Activity", href: "/ai-activity", icon: Activity },
