@@ -1020,6 +1020,10 @@ components:
         status: { $ref: "#/components/schemas/EmailMessageStatus" }
         sentAt: { type: ["string", "null"], format: date-time }
         createdAt: { type: string, format: date-time }
+        openCount: { type: integer }
+        clickCount: { type: integer }
+        lastOpenedAt: { type: ["string", "null"], format: date-time }
+        lastClickedAt: { type: ["string", "null"], format: date-time }
 
     EmailThread:
       type: object
@@ -1055,6 +1059,8 @@ components:
               type: array
               items: { $ref: "#/components/schemas/EmailMessage" }
             draftReply: { type: ["string", "null"] }
+            openCount: { type: integer }
+            clickCount: { type: integer }
 
     EmailThreadPage:
       type: object
@@ -1323,6 +1329,10 @@ components:
           replies,
           interestedLeads,
           followupsPending,
+          opens,
+          clicks,
+          openRate,
+          clickRate,
           interestedProspects,
         ]
       properties:
@@ -1331,6 +1341,18 @@ components:
         replies: { type: integer }
         interestedLeads: { type: integer }
         followupsPending: { type: integer }
+        opens:
+          type: integer
+          description: Number of distinct sent messages that were opened at least once.
+        clicks:
+          type: integer
+          description: Number of distinct sent messages that had at least one link clicked.
+        openRate:
+          type: number
+          description: opens / emailsSent, 0 when nothing has been sent yet.
+        clickRate:
+          type: number
+          description: clicks / emailsSent, 0 when nothing has been sent yet.
         interestedProspects:
           type: array
           items: { $ref: "#/components/schemas/InterestedProspect" }

@@ -12,4 +12,6 @@ export type EmailThreadDetail = EmailThread & ({
   messages: EmailMessage[];
   /** @nullable */
   draftReply?: string | null;
+  openCount?: number;
+  clickCount?: number;
 });

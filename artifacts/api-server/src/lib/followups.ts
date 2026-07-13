@@ -12,6 +12,7 @@ import { isGmailConfigured, sendGmailMessage } from "./gmail";
 import { generateFollowupEmail } from "./llm";
 import { logger } from "./logger";
 import { getOrCreateSettings } from "./settings";
+import { buildTrackedHtmlBody, newTrackingId } from "./emailTracking";
 
 export interface FollowupRunResult {
   sent: number;
@@ -102,10 +103,13 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
         prospectId: prospect.id,
       });
 
+      const trackingId = newTrackingId();
+      const trackedHtmlBody = buildTrackedHtmlBody(draft.body, trackingId);
       const result = await sendGmailMessage({
         to: prospect.email,
         subject: draft.subject,
-        body: draft.body,
+        body: trackedHtmlBody,
+        contentType: "text/html",
         threadId: cp.gmailThreadId,
       });
 
@@ -125,6 +129,7 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
           body: draft.body,
           status: "sent",
           sentAt: now,
+          trackingId,
         });
       }
 

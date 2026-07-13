@@ -13,5 +13,13 @@ export interface DashboardSummary {
   replies: number;
   interestedLeads: number;
   followupsPending: number;
+  /** Number of distinct sent messages that were opened at least once. */
+  opens: number;
+  /** Number of distinct sent messages that had at least one link clicked. */
+  clicks: number;
+  /** opens / emailsSent, 0 when nothing has been sent yet. */
+  openRate: number;
+  /** clicks / emailsSent, 0 when nothing has been sent yet. */
+  clickRate: number;
   interestedProspects: InterestedProspect[];
 }

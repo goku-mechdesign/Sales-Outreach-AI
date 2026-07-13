@@ -22,6 +22,7 @@ export * from "./campaigns";
 export * from "./campaignProspects";
 export * from "./emailThreads";
 export * from "./emailMessages";
+export * from "./emailEvents";
 export * from "./aiActivity";
 export * from "./settings";
 export * from "./notifications";

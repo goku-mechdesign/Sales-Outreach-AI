@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ilike, count } from "drizzle-orm";
-import { db, emailThreadsTable, emailMessagesTable, prospectsTable } from "@workspace/db";
+import {
+  db,
+  emailThreadsTable,
+  emailMessagesTable,
+  emailEventsTable,
+  prospectsTable,
+} from "@workspace/db";
 import {
   ListThreadsQueryParams,
   ListThreadsResponse,
@@ -26,12 +32,38 @@ async function getThreadDetail(threadId: number) {
     .from(emailThreadsTable)
     .where(eq(emailThreadsTable.id, threadId));
   if (!thread) return null;
-  const messages = await db
-    .select()
-    .from(emailMessagesTable)
-    .where(eq(emailMessagesTable.threadId, threadId))
-    .orderBy(emailMessagesTable.createdAt);
-  return { ...thread, messages, draftReply: thread.draftReply };
+  const [messages, events] = await Promise.all([
+    db
+      .select()
+      .from(emailMessagesTable)
+      .where(eq(emailMessagesTable.threadId, threadId))
+      .orderBy(emailMessagesTable.createdAt),
+    db
+      .select()
+      .from(emailEventsTable)
+      .where(eq(emailEventsTable.threadId, threadId))
+      .orderBy(emailEventsTable.createdAt),
+  ]);
+
+  const messagesWithEvents = messages.map((m) => {
+    const opens = events.filter((e) => e.messageId === m.id && e.type === "open");
+    const clicks = events.filter((e) => e.messageId === m.id && e.type === "click");
+    return {
+      ...m,
+      openCount: opens.length,
+      clickCount: clicks.length,
+      lastOpenedAt: opens.at(-1)?.createdAt ?? null,
+      lastClickedAt: clicks.at(-1)?.createdAt ?? null,
+    };
+  });
+
+  return {
+    ...thread,
+    messages: messagesWithEvents,
+    draftReply: thread.draftReply,
+    openCount: messagesWithEvents.reduce((sum, m) => sum + m.openCount, 0),
+    clickCount: messagesWithEvents.reduce((sum, m) => sum + m.clickCount, 0),
+  };
 }
 
 router.get("/threads", async (req, res): Promise<void> => {
