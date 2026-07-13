@@ -4,6 +4,7 @@ import { getOrCreateSettings } from "./settings";
 import { discoverAndCreateProspects } from "./discoveryFlow";
 import { sendCampaignBatch } from "./campaignSend";
 import { computeEffectiveDailyLimit } from "./warmup";
+import { filterActivelyEnrolledElsewhere } from "./enrollment";
 import { logger } from "./logger";
 
 const CADENCE_MS: Record<"daily" | "weekly", number> = {
@@ -16,6 +17,7 @@ export interface AutoDiscoveryRunResult {
   created: number;
   enrolled: number;
   duplicatesSkipped: number;
+  crossCampaignDuplicatesSkipped: number;
 }
 
 /**
@@ -27,13 +29,13 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
   const settings = await getOrCreateSettings();
 
   if (!settings.autoDiscoveryEnabled || settings.autoDiscoveryCadence === "manual") {
-    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0 };
+    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0, crossCampaignDuplicatesSkipped: 0 };
   }
   if (!settings.autoDiscoveryIndustry || !settings.autoDiscoveryCountry) {
     logger.warn(
       "Autonomous discovery is enabled but no industry/country criteria is saved in Settings; skipping.",
     );
-    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0 };
+    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0, crossCampaignDuplicatesSkipped: 0 };
   }
 
   const interval = CADENCE_MS[settings.autoDiscoveryCadence];
@@ -41,7 +43,7 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     !settings.lastAutoDiscoveryAt ||
     Date.now() - settings.lastAutoDiscoveryAt.getTime() >= interval;
   if (!due) {
-    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0 };
+    return { ran: false, created: 0, enrolled: 0, duplicatesSkipped: 0, crossCampaignDuplicatesSkipped: 0 };
   }
 
   const result = await discoverAndCreateProspects({
@@ -58,6 +60,7 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     .where(eq(settingsTable.id, settings.id));
 
   let enrolled = 0;
+  let crossCampaignDuplicatesSkipped = 0;
   // Highest-scored leads first, so if a run produces more emailable
   // prospects than the campaign's sending capacity, the best-fit ones are
   // inserted (and therefore sent) first.
@@ -70,16 +73,34 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
       .from(campaignsTable)
       .where(eq(campaignsTable.id, settings.autoEnrollCampaignId));
     if (campaign) {
-      const rows = await db
-        .insert(campaignProspectsTable)
-        .values(emailable.map((p) => ({ campaignId: campaign.id, prospectId: p.id })))
-        .returning();
-      enrolled = rows.length;
+      // Skip anything already actively being worked in another campaign --
+      // newly-created prospects only realistically collide here if
+      // discovery just re-found a company that's already mid-outreach
+      // elsewhere, but the check is cheap and keeps the guarantee absolute.
+      const { eligible, skipped } = await filterActivelyEnrolledElsewhere(
+        emailable.map((p) => p.id),
+        campaign.id,
+      );
+      crossCampaignDuplicatesSkipped = skipped.length;
+      if (eligible.length > 0) {
+        const eligibleSet = new Set(eligible);
+        const orderedEligible = emailable.filter((p) => eligibleSet.has(p.id));
+        const rows = await db
+          .insert(campaignProspectsTable)
+          .values(orderedEligible.map((p) => ({ campaignId: campaign.id, prospectId: p.id })))
+          .returning();
+        enrolled = rows.length;
+      }
     }
   }
 
   logger.info(
-    { created: result.created.length, enrolled, duplicatesSkipped: result.duplicatesSkipped },
+    {
+      created: result.created.length,
+      enrolled,
+      duplicatesSkipped: result.duplicatesSkipped,
+      crossCampaignDuplicatesSkipped,
+    },
     "Autonomous discovery run completed",
   );
 
@@ -88,6 +109,7 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     created: result.created.length,
     enrolled,
     duplicatesSkipped: result.duplicatesSkipped,
+    crossCampaignDuplicatesSkipped,
   };
 }
 

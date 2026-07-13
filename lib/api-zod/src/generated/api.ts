@@ -303,7 +303,8 @@ export const ListCampaignsResponseItem = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 })
 export const ListCampaignsResponse = zod.array(ListCampaignsResponseItem)
 
@@ -348,7 +349,8 @@ export const CreateCampaignResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -391,7 +393,8 @@ export const GetCampaignResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -448,7 +451,8 @@ export const UpdateCampaignResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -501,7 +505,8 @@ export const GenerateCampaignEmailResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -562,7 +567,8 @@ export const SendCampaignResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -606,7 +612,8 @@ export const ApproveCampaignTemplateResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),
@@ -653,7 +660,8 @@ export const ScheduleCampaignResponse = zod.object({
   "prospectCount": zod.number(),
   "sentCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "skippedDuplicateCount": zod.number().optional().describe('Number of requested prospectIds skipped on creation because they were already actively enrolled (pending\/sent) in another campaign. Only meaningful right after creation.')
 }).and(zod.object({
   "prospects": zod.array(zod.object({
   "id": zod.number(),

@@ -1,4 +1,3 @@
-import { ilike } from "drizzle-orm";
 import { db, prospectsTable, type Prospect } from "@workspace/db";
 import { runDiscovery, findEmailForDomain, extractDomain } from "./providers";
 import { guessLanguageFromCountry } from "./languageGuess";
@@ -39,12 +38,24 @@ export async function discoverAndCreateProspects(
   let duplicatesSkipped = 0;
   const settings = await getOrCreateSettings();
 
+  // Precompute existing name/domain sets once instead of a query per
+  // candidate. Domain match catches the same company discovered under
+  // slightly different name formatting (e.g. "Acme Inc" vs "Acme, Inc.")
+  // that the name-only check misses; both sets are updated as rows are
+  // created so duplicates within the same discovery batch are also caught.
+  const existingProspects = await db
+    .select({ companyName: prospectsTable.companyName, website: prospectsTable.website })
+    .from(prospectsTable);
+  const existingNames = new Set(existingProspects.map((p) => p.companyName.trim().toLowerCase()));
+  const existingDomains = new Set(
+    existingProspects.map((p) => extractDomain(p.website)).filter((d): d is string => Boolean(d)),
+  );
+
   for (const company of companies.slice(0, requestedCount)) {
-    const [existing] = await db
-      .select()
-      .from(prospectsTable)
-      .where(ilike(prospectsTable.companyName, company.companyName));
-    if (existing) {
+    const domain = extractDomain(company.website);
+    const nameKey = company.companyName.trim().toLowerCase();
+    const isDuplicate = existingNames.has(nameKey) || (domain !== null && existingDomains.has(domain));
+    if (isDuplicate) {
       duplicatesSkipped += 1;
       continue;
     }
@@ -52,7 +63,6 @@ export async function discoverAndCreateProspects(
     let email: string | null = null;
     let contactName: string | null = null;
     let confidenceScore = 0.4;
-    const domain = extractDomain(company.website);
     if (domain) {
       const found = await findEmailForDomain(domain);
       if (found) {
@@ -85,6 +95,8 @@ export async function discoverAndCreateProspects(
       })
       .returning();
     created.push(row!);
+    existingNames.add(nameKey);
+    if (domain) existingDomains.add(domain);
   }
 
   return { created, duplicatesSkipped, providersUsed, providersSkipped };

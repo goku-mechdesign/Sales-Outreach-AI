@@ -191,6 +191,8 @@ export interface Campaign {
   sentCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Number of requested prospectIds skipped on creation because they were already actively enrolled (pending/sent) in another campaign. Only meaningful right after creation. */
+  skippedDuplicateCount?: number;
 }
 
 export interface CampaignProspect {
