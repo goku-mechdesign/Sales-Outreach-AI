@@ -74,6 +74,19 @@ export async function processDueFollowups(): Promise<FollowupRunResult> {
         continue;
       }
 
+      if (prospect.bouncedAt) {
+        await db
+          .update(campaignProspectsTable)
+          .set({
+            status: "bounced",
+            stoppedReason: prospect.bounceReason ?? "Email address bounced",
+            nextFollowupAt: null,
+          })
+          .where(eq(campaignProspectsTable.id, cp.id));
+        suppressed += 1;
+        continue;
+      }
+
       const nextStage = cp.followupStage + 1;
       const draft = await generateFollowupEmail({
         campaign,

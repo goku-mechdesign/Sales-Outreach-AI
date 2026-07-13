@@ -57,7 +57,9 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     .where(eq(settingsTable.id, settings.id));
 
   let enrolled = 0;
-  const emailable = result.created.filter((p) => p.email && !p.unsubscribedAt);
+  const emailable = result.created.filter(
+    (p) => p.email && !p.unsubscribedAt && !p.bouncedAt,
+  );
   if (settings.autoEnrollCampaignId && emailable.length > 0) {
     const [campaign] = await db
       .select()

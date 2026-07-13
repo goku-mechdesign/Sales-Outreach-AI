@@ -52,6 +52,8 @@ export const ListProspectsResponse = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
@@ -96,6 +98,8 @@ export const CreateProspectResponse = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -137,6 +141,8 @@ export const DiscoverProspectsResponse = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
@@ -171,6 +177,8 @@ export const BulkUpdateProspectStatusResponseItem = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -201,6 +209,8 @@ export const GetProspectResponse = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -249,6 +259,8 @@ export const UpdateProspectResponse = zod.object({
   "notes": zod.string().nullish(),
   "unsubscribedAt": zod.coerce.date().nullish(),
   "unsubscribeReason": zod.string().nullish(),
+  "bouncedAt": zod.coerce.date().nullish(),
+  "bounceReason": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
