@@ -1230,6 +1230,19 @@ components:
         disabled: { type: boolean }
 
     # ------------------------ Dashboard ------------------------
+    InterestedProspect:
+      type: object
+      required: [threadId, companyName, category]
+      properties:
+        threadId: { type: integer }
+        prospectId: { type: ["integer", "null"] }
+        companyName: { type: string }
+        contactName: { type: ["string", "null"] }
+        email: { type: ["string", "null"] }
+        category: { $ref: "#/components/schemas/ReplyCategory" }
+        summary: { type: ["string", "null"] }
+        lastMessageAt: { type: string, format: date-time }
+
     DashboardSummary:
       type: object
       required:
@@ -1239,6 +1252,7 @@ components:
           replies,
           interestedLeads,
           followupsPending,
+          interestedProspects,
         ]
       properties:
         prospectsImported: { type: integer }
@@ -1246,6 +1260,9 @@ components:
         replies: { type: integer }
         interestedLeads: { type: integer }
         followupsPending: { type: integer }
+        interestedProspects:
+          type: array
+          items: { $ref: "#/components/schemas/InterestedProspect" }
 
     # ------------------------ Notifications ------------------------
     Notification:

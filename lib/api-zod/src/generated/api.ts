@@ -980,7 +980,17 @@ export const GetDashboardSummaryResponse = zod.object({
   "emailsSent": zod.number(),
   "replies": zod.number(),
   "interestedLeads": zod.number(),
-  "followupsPending": zod.number()
+  "followupsPending": zod.number(),
+  "interestedProspects": zod.array(zod.object({
+  "threadId": zod.number(),
+  "prospectId": zod.number().nullish(),
+  "companyName": zod.string(),
+  "contactName": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "category": zod.enum(['interested', 'need_more_info', 'pricing', 'meeting_request', 'not_interested', 'wrong_contact', 'out_of_office', 'spam', 'other']),
+  "summary": zod.string().nullish(),
+  "lastMessageAt": zod.coerce.date().optional()
+}))
 })
 
 
