@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Sparkles, Trash2, Search, Users, BellOff, Bell } from "lucide-react";
+import { Plus, Sparkles, Trash2, Search, Users, BellOff, Bell, ArrowUpDown } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +69,18 @@ const statusVariant: Record<ProspectStatus, "default" | "secondary" | "destructi
   bounced: "destructive",
 };
 
+function leadScoreTier(score: number): "High" | "Medium" | "Low" {
+  if (score >= 70) return "High";
+  if (score >= 40) return "Medium";
+  return "Low";
+}
+
+const leadScoreBadgeClass: Record<"High" | "Medium" | "Low", string> = {
+  High: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  Medium: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  Low: "bg-muted text-muted-foreground",
+};
+
 export default function Prospects() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,6 +89,7 @@ export default function Prospects() {
   const [selected, setSelected] = useState<number[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [sortByScore, setSortByScore] = useState(false);
 
   const { data, isLoading } = useListProspects({
     search: search || undefined,
@@ -143,6 +156,7 @@ export default function Prospects() {
   });
 
   const items: Prospect[] = data?.items ?? [];
+  const sortedItems = sortByScore ? [...items].sort((a, b) => b.leadScore - a.leadScore) : items;
 
   const toggleAll = (checked: boolean) => {
     setSelected(checked ? items.map((p) => p.id) : []);
@@ -262,12 +276,23 @@ export default function Prospects() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Source</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 hover:text-foreground"
+                      onClick={() => setSortByScore((v) => !v)}
+                      data-testid="button-sort-score"
+                    >
+                      Score
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((p) => {
+                {sortedItems.map((p) => {
                   const isSuppressed = !!p.unsubscribedAt;
                   const isBounced = !!p.bouncedAt;
                   return (
@@ -295,6 +320,14 @@ export default function Prospects() {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground capitalize">{p.source}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${leadScoreBadgeClass[leadScoreTier(p.leadScore)]}`}
+                        data-testid={`badge-lead-score-${p.id}`}
+                      >
+                        {p.leadScore} · {leadScoreTier(p.leadScore)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {isBounced ? (

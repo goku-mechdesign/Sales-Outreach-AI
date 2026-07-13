@@ -30,6 +30,8 @@ export interface Prospect {
   contactName?: string | null;
   status: ProspectStatus;
   confidenceScore: number;
+  /** Deterministic 0-100 fit/intent score, recomputed on create/edit. */
+  leadScore: number;
   /** @nullable */
   notes?: string | null;
   /** @nullable */

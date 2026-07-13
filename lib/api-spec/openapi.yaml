@@ -764,7 +764,7 @@ components:
     Prospect:
       type: object
       required:
-        [id, companyName, status, source, confidenceScore, createdAt, updatedAt]
+        [id, companyName, status, source, confidenceScore, leadScore, createdAt, updatedAt]
       properties:
         id: { type: integer }
         companyName: { type: string }
@@ -779,6 +779,9 @@ components:
         contactName: { type: ["string", "null"] }
         status: { $ref: "#/components/schemas/ProspectStatus" }
         confidenceScore: { type: number }
+        leadScore:
+          type: integer
+          description: Deterministic 0-100 fit/intent score, recomputed on create/edit.
         notes: { type: ["string", "null"] }
         unsubscribedAt: { type: ["string", "null"], format: date-time }
         unsubscribeReason: { type: ["string", "null"] }

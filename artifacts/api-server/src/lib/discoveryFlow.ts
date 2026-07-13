@@ -2,6 +2,8 @@ import { ilike } from "drizzle-orm";
 import { db, prospectsTable, type Prospect } from "@workspace/db";
 import { runDiscovery, findEmailForDomain, extractDomain } from "./providers";
 import { guessLanguageFromCountry } from "./languageGuess";
+import { computeLeadScore } from "./leadScoring";
+import { getOrCreateSettings } from "./settings";
 
 export interface DiscoveryFlowParams {
   industry: string;
@@ -35,6 +37,7 @@ export async function discoverAndCreateProspects(
 
   const created: Prospect[] = [];
   let duplicatesSkipped = 0;
+  const settings = await getOrCreateSettings();
 
   for (const company of companies.slice(0, requestedCount)) {
     const [existing] = await db
@@ -59,6 +62,11 @@ export async function discoverAndCreateProspects(
       }
     }
 
+    const leadScore = computeLeadScore(
+      { confidenceScore, email, contactName, industry: company.industry, country: company.country },
+      settings,
+    );
+
     const [row] = await db
       .insert(prospectsTable)
       .values({
@@ -72,6 +80,7 @@ export async function discoverAndCreateProspects(
         email,
         contactName,
         confidenceScore,
+        leadScore,
         detectedLanguage: guessLanguageFromCountry(company.country, company.city),
       })
       .returning();

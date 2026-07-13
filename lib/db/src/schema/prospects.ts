@@ -4,6 +4,7 @@ import {
   serial,
   timestamp,
   real,
+  integer,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -44,6 +45,10 @@ export const prospectsTable = pgTable("prospects", {
     .notNull()
     .default("new"),
   confidenceScore: real("confidence_score").notNull().default(0),
+  // Deterministic 0-100 fit/intent score computed at discovery/edit time --
+  // see `computeLeadScore` in the api-server. Lets the Prospects list
+  // surface the best-fit leads and lets auto-enrollment prioritize them.
+  leadScore: integer("lead_score").notNull().default(0),
   notes: text("notes"),
   // Suppression: once set, this prospect must never be emailed again by any
   // send path (manual, autonomous, or auto-enrollment) -- independent of
