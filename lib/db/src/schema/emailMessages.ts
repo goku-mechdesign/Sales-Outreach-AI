@@ -8,6 +8,7 @@ export const emailMessageStatusValues = [
   "sent",
   "draft_pending_approval",
   "approved",
+  "auto_sent",
 ] as const;
 
 export const emailMessagesTable = pgTable("email_messages", {

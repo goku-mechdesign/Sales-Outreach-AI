@@ -654,7 +654,7 @@ export const GetThreadResponse = zod.object({
   "toAddress": zod.string(),
   "subject": zod.string().nullish(),
   "body": zod.string(),
-  "status": zod.enum(['sent', 'draft_pending_approval', 'approved']),
+  "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })),
@@ -695,7 +695,7 @@ export const SendReplyResponse = zod.object({
   "toAddress": zod.string(),
   "subject": zod.string().nullish(),
   "body": zod.string(),
-  "status": zod.enum(['sent', 'draft_pending_approval', 'approved']),
+  "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })),
@@ -731,7 +731,7 @@ export const GenerateReplyDraftResponse = zod.object({
   "toAddress": zod.string(),
   "subject": zod.string().nullish(),
   "body": zod.string(),
-  "status": zod.enum(['sent', 'draft_pending_approval', 'approved']),
+  "status": zod.enum(['sent', 'draft_pending_approval', 'approved', 'auto_sent']),
   "sentAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })),
@@ -745,7 +745,8 @@ export const GenerateReplyDraftResponse = zod.object({
 export const PollInboxResponse = zod.object({
   "newMessages": zod.number(),
   "newlyClassified": zod.number(),
-  "hotLeads": zod.number()
+  "hotLeads": zod.number(),
+  "autoReplied": zod.number()
 })
 
 
@@ -807,6 +808,8 @@ export const GetSettingsResponse = zod.object({
   "followupDays": zod.array(zod.number()),
   "autoReplyEnabled": zod.boolean(),
   "autoReplyCategories": zod.array(zod.enum(['interested', 'need_more_info', 'pricing', 'meeting_request', 'not_interested', 'wrong_contact', 'out_of_office', 'spam', 'other'])),
+  "autoReplyHoldHotLeads": zod.boolean().optional(),
+  "notifyOnAutoReply": zod.boolean().optional(),
   "notificationEmail": zod.string().nullish(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -833,6 +836,8 @@ export const UpdateSettingsBody = zod.object({
   "followupDays": zod.array(zod.number()).optional(),
   "autoReplyEnabled": zod.boolean().optional(),
   "autoReplyCategories": zod.array(zod.enum(['interested', 'need_more_info', 'pricing', 'meeting_request', 'not_interested', 'wrong_contact', 'out_of_office', 'spam', 'other'])).optional(),
+  "autoReplyHoldHotLeads": zod.boolean().optional(),
+  "notifyOnAutoReply": zod.boolean().optional(),
   "notificationEmail": zod.string().optional()
 })
 
@@ -850,6 +855,8 @@ export const UpdateSettingsResponse = zod.object({
   "followupDays": zod.array(zod.number()),
   "autoReplyEnabled": zod.boolean(),
   "autoReplyCategories": zod.array(zod.enum(['interested', 'need_more_info', 'pricing', 'meeting_request', 'not_interested', 'wrong_contact', 'out_of_office', 'spam', 'other'])),
+  "autoReplyHoldHotLeads": zod.boolean().optional(),
+  "notifyOnAutoReply": zod.boolean().optional(),
   "notificationEmail": zod.string().nullish(),
   "updatedAt": zod.coerce.date().optional()
 })

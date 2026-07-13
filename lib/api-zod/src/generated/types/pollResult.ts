@@ -10,4 +10,5 @@ export interface PollResult {
   newMessages: number;
   newlyClassified: number;
   hotLeads: number;
+  autoReplied: number;
 }

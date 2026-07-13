@@ -271,6 +271,7 @@ export const EmailMessageStatus = {
   sent: 'sent',
   draft_pending_approval: 'draft_pending_approval',
   approved: 'approved',
+  auto_sent: 'auto_sent',
 } as const;
 
 export interface EmailMessage {
@@ -329,6 +330,7 @@ export interface PollResult {
   newMessages: number;
   newlyClassified: number;
   hotLeads: number;
+  autoReplied: number;
 }
 
 export type AiActivityKind = typeof AiActivityKind[keyof typeof AiActivityKind];
@@ -404,6 +406,8 @@ export interface Settings {
   followupDays: number[];
   autoReplyEnabled: boolean;
   autoReplyCategories: ReplyCategory[];
+  autoReplyHoldHotLeads?: boolean;
+  notifyOnAutoReply?: boolean;
   /** @nullable */
   notificationEmail?: string | null;
   updatedAt?: string;
@@ -427,6 +431,8 @@ export interface SettingsUpdate {
   followupDays?: number[];
   autoReplyEnabled?: boolean;
   autoReplyCategories?: ReplyCategory[];
+  autoReplyHoldHotLeads?: boolean;
+  notifyOnAutoReply?: boolean;
   notificationEmail?: string;
 }
 

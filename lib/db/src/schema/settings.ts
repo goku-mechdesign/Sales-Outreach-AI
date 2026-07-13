@@ -22,6 +22,10 @@ export const settingsTable = pgTable("settings", {
     .array()
     .notNull()
     .default([]),
+  autoReplyHoldHotLeads: boolean("auto_reply_hold_hot_leads")
+    .notNull()
+    .default(true),
+  notifyOnAutoReply: boolean("notify_on_auto_reply").notNull().default(true),
   notificationEmail: text("notification_email"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
