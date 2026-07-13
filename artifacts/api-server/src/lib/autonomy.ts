@@ -58,9 +58,12 @@ export async function runAutonomousDiscoveryIfDue(): Promise<AutoDiscoveryRunRes
     .where(eq(settingsTable.id, settings.id));
 
   let enrolled = 0;
-  const emailable = result.created.filter(
-    (p) => p.email && !p.unsubscribedAt && !p.bouncedAt,
-  );
+  // Highest-scored leads first, so if a run produces more emailable
+  // prospects than the campaign's sending capacity, the best-fit ones are
+  // inserted (and therefore sent) first.
+  const emailable = result.created
+    .filter((p) => p.email && !p.unsubscribedAt && !p.bouncedAt)
+    .sort((a, b) => b.leadScore - a.leadScore);
   if (settings.autoEnrollCampaignId && emailable.length > 0) {
     const [campaign] = await db
       .select()

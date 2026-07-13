@@ -19,6 +19,8 @@ import {
 } from "@workspace/api-zod";
 import { guessLanguageFromCountry } from "../lib/languageGuess";
 import { discoverAndCreateProspects } from "../lib/discoveryFlow";
+import { computeLeadScore } from "../lib/leadScoring";
+import { getOrCreateSettings } from "../lib/settings";
 
 const router: IRouter = Router();
 
@@ -56,11 +58,24 @@ router.post("/prospects", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const settings = await getOrCreateSettings();
+  const leadScore = computeLeadScore(
+    {
+      // Manually-added prospects have no provider confidence score.
+      confidenceScore: 0,
+      email: parsed.data.email ?? null,
+      contactName: parsed.data.contactName ?? null,
+      industry: parsed.data.industry ?? null,
+      country: parsed.data.country ?? null,
+    },
+    settings,
+  );
   const [prospect] = await db
     .insert(prospectsTable)
     .values({
       ...parsed.data,
       source: "manual",
+      leadScore,
       detectedLanguage: guessLanguageFromCountry(parsed.data.country, parsed.data.city),
     })
     .returning();
@@ -130,9 +145,39 @@ router.patch("/prospects/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const scoringFields = ["email", "contactName", "industry", "country"] as const;
+  const needsRescore = scoringFields.some((f) => f in parsed.data);
+
+  let updateValues: typeof parsed.data & { leadScore?: number } = parsed.data;
+  if (needsRescore) {
+    const [existing] = await db
+      .select()
+      .from(prospectsTable)
+      .where(eq(prospectsTable.id, params.data.id));
+    if (!existing) {
+      res.status(404).json({ error: "Prospect not found" });
+      return;
+    }
+    const settings = await getOrCreateSettings();
+    const merged = { ...existing, ...parsed.data };
+    updateValues = {
+      ...parsed.data,
+      leadScore: computeLeadScore(
+        {
+          confidenceScore: merged.confidenceScore ?? 0,
+          email: merged.email ?? null,
+          contactName: merged.contactName ?? null,
+          industry: merged.industry ?? null,
+          country: merged.country ?? null,
+        },
+        settings,
+      ),
+    };
+  }
+
   const [prospect] = await db
     .update(prospectsTable)
-    .set(parsed.data)
+    .set(updateValues)
     .where(eq(prospectsTable.id, params.data.id))
     .returning();
   if (!prospect) {
