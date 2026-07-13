@@ -5,6 +5,7 @@
  * AI Sales Outreach Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { InterestedProspect } from './interestedProspect';
 
 export interface DashboardSummary {
   prospectsImported: number;
@@ -12,4 +13,5 @@ export interface DashboardSummary {
   replies: number;
   interestedLeads: number;
   followupsPending: number;
+  interestedProspects: InterestedProspect[];
 }

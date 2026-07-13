@@ -495,12 +495,28 @@ export interface GmailDisabledInput {
   disabled: boolean;
 }
 
+export interface InterestedProspect {
+  threadId: number;
+  /** @nullable */
+  prospectId?: number | null;
+  companyName: string;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  email?: string | null;
+  category: ReplyCategory;
+  /** @nullable */
+  summary?: string | null;
+  lastMessageAt?: string;
+}
+
 export interface DashboardSummary {
   prospectsImported: number;
   emailsSent: number;
   replies: number;
   interestedLeads: number;
   followupsPending: number;
+  interestedProspects: InterestedProspect[];
 }
 
 export interface Notification {

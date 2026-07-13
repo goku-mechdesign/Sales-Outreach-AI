@@ -37,6 +37,7 @@ export * from './integrationField';
 export * from './integrationStatus';
 export * from './integrationStatusConfiguredVia';
 export * from './integrationTestResult';
+export * from './interestedProspect';
 export * from './listAiActivityParams';
 export * from './listNotificationsParams';
 export * from './listProspectsParams';

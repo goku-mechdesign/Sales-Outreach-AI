@@ -1,15 +1,28 @@
 import { useGetDashboardSummary } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Users, Send, MessageSquareReply, Flame, Clock } from "lucide-react";
 
 const stats = [
   { key: "prospectsImported" as const, label: "Prospects imported", icon: Users },
   { key: "emailsSent" as const, label: "Emails sent", icon: Send },
   { key: "replies" as const, label: "Replies received", icon: MessageSquareReply },
-  { key: "interestedLeads" as const, label: "Interested leads", icon: Flame },
+  { key: "interestedLeads" as const, label: "Interested prospects", icon: Flame },
   { key: "followupsPending" as const, label: "Follow-ups pending", icon: Clock },
 ];
+
+const categoryLabel: Record<string, string> = {
+  interested: "Interested",
+  pricing: "Asked about pricing",
+  meeting_request: "Wants a meeting",
+  need_more_info: "Wants more info",
+  not_interested: "Not interested",
+  wrong_contact: "Wrong contact",
+  out_of_office: "Out of office",
+  spam: "Spam",
+  other: "Other",
+};
 
 export default function Dashboard() {
   const { data, isLoading } = useGetDashboardSummary();
@@ -53,6 +66,45 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Who's interested</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Every reply the agent flagged as a hot lead, most recent first.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : !data?.interestedProspects?.length ? (
+            <p className="text-sm text-muted-foreground">No interested prospects yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {data.interestedProspects.map((p) => (
+                <div
+                  key={p.threadId}
+                  className="flex items-center justify-between gap-3 rounded-md border p-3"
+                  data-testid={`row-interested-${p.threadId}`}
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">
+                      {p.contactName ? `${p.contactName} · ${p.companyName}` : p.companyName}
+                    </div>
+                    {p.summary && (
+                      <div className="text-xs text-muted-foreground truncate">{p.summary}</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                    <Badge variant="secondary">{categoryLabel[p.category] ?? p.category}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
