@@ -117,6 +117,7 @@ export async function pollInboxAndProcess(): Promise<PollResult> {
             messages,
             companyContext: settings,
             language: prospect?.detectedLanguage,
+            country: prospect?.country,
             threadId,
           });
           await db
